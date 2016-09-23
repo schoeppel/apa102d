@@ -15,11 +15,9 @@ struct color_rgb hsv_to_rgbw(uint16_t h, uint8_t s, uint8_t v) {
 	uint8_t r, g, b, i, f;
 	uint8_t p, q, t;
 
-
 	if( s == 0 ) {
 		r = g = b = v;
 	} else {
-
 		i = h / 256;
 		f = h % 256;
 
@@ -46,11 +44,9 @@ struct color_rgb hsv_to_rgbw(uint16_t h, uint8_t s, uint8_t v) {
 
 	struct color_rgb ret;
 
-
 	ret.r = r;
 	ret.g = g;
 	ret.b = b;
 
 	return ret;
-
 }

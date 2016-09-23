@@ -14,7 +14,10 @@
 
 #include "apa102.h"
 
-static struct apa102_led leds[1 + 288 + 5];
+// 1 at the start for the start frame
+// 1 at the end for the end frame + 4 extra end frames for weird timing movements
+//   (288 / 2 (half Hz clock drift) / 32 (end frame length))
+static struct apa102_led leds[1 + 288 + 1 + 4];
 
 static int fd = -1;
 
@@ -26,7 +29,6 @@ unsigned long long time_ns() {
 
 	return (1000000000ULL * ts.tv_sec + ts.tv_nsec);
 }
-
 
 struct apa102_led apa102_rgb(float rf, float gf, float bf) {
 	struct apa102_led led;
@@ -42,7 +44,6 @@ struct apa102_led apa102_rgb(float rf, float gf, float bf) {
 	unsigned int max = r;
 	if (g > max) max = g;
 	if (b > max) max = b;
-
 
 	if (max < 8) {
 		led.global = 0xe0 | 1;
@@ -65,7 +66,6 @@ struct apa102_led apa102_rgb(float rf, float gf, float bf) {
 
 	return led;
 }
-
 
 struct apa102_led apa102_hsv(float h, float s, float v) {
 	float r, g, b;
@@ -97,60 +97,56 @@ struct apa102_led apa102_hsv(float h, float s, float v) {
 	return apa102_rgb(r, g, b);
 }
 
-
 struct apa102_led* apa102_open() {
 	memset(leds, 0, sizeof(struct apa102_led));
 	memset(leds + 1 + 288, 0xff, sizeof(struct apa102_led) * 5);
-	
+
 	for (unsigned int i = 0; i < 288; i++) {
 		/* 1/2 brightness */
 		leds[1+i].global = 0xe0 | 1;
-		
+
 		leds[1+i].r = 0;
 		leds[1+i].g = 0;
 		leds[1+i].b = 0;
 	}
-	
-	
+
 	fd = open("/dev/spidev0.0", O_RDWR);
 	if (fd < 0) {
 		perror("spidev open");
 		fd = open("/dev/null", O_RDWR);
 	}
-	
-	uint32_t max_hz = 10000000;	
+
+	uint32_t max_hz = 10000000;
 	if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &max_hz) < 0) {
 		perror("set speed");
-		
+
 		/*close(fd);
 		fd = -1;
 		return NULL;*/
 	}
-	
+
 	uint8_t mode = SPI_MODE_3;
-	
+
 	if (ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
                 perror("mode");
-                
+
                 /*close(fd);
                 fd = -1;
                 return NULL;*/
         }
 
-	
 	return leds + 1;
 }
-
 
 void apa102_sync() {
 	if (fd < 0) return;
 
 	const void* buf = (const void*)&leds[0];
 	size_t buf_len = sizeof(leds);
-	
+
 	while (buf_len > 0) {
 		int bytes = write(fd, buf, buf_len);
-		
+
 		if (bytes == -1) {
 			if (errno == EINTR)
 				continue;
@@ -158,15 +154,12 @@ void apa102_sync() {
 				return;
 		}
 
-		buf += bytes;		
+		buf += bytes;
 		buf_len -= bytes;
 	}
 }
-
 
 void apa102_close() {
 	close(fd);
 	fd = -1;
 }
-
-

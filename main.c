@@ -23,7 +23,6 @@ int usage(const char* name) {
 	fprintf(stderr, "       %s rgb <red> <green> <blue> (0.0-1.0)\n", name);
 	fprintf(stderr, "       %s particles <period> (1-1000)\n", name);
 	fprintf(stderr, "       %s bubbles <hue> <saturation> <value> (0.0-1.0)\n", name);
-	
 
 	return 1;
 }
@@ -53,11 +52,10 @@ int daemonize() {
 
 	int log_fd = open("/tmp/apa102.log", O_WRONLY | O_APPEND | O_CREAT, 0644);
 	int input_fd = open("/dev/null", O_RDONLY);
-	
+
 	if (log_fd < 0) {
 		perror("open logfile");
 	}
-	
 
 	/* Create a new SID for the child process */
 	sid = setsid();
@@ -65,8 +63,6 @@ int daemonize() {
 		/* Log the failure */
 		exit(EXIT_FAILURE);
 	}
-
-
 
 	/* Change the current working directory */
 	if ((chdir("/")) < 0) {
@@ -78,13 +74,13 @@ int daemonize() {
 	close(STDIN_FILENO);
 	close(STDOUT_FILENO);
 	close(STDERR_FILENO);
-	
+
 	dup2(input_fd, STDIN_FILENO);
 	dup2(log_fd, STDOUT_FILENO);
 	dup2(log_fd, STDERR_FILENO);
-	
+
 	printf("apa102 started (%i)\n", getpid());
-	
+
 	FILE* pidfile = fopen("/tmp/apa102.pid", "w");
 	if (pidfile != NULL) {
 		fprintf(pidfile, "%u", getpid());
@@ -93,7 +89,6 @@ int daemonize() {
 		printf("Could not write pidfile\n");
 	}
 }
-
 
 int singlecolor_main(struct apa102_led color) {
 	struct apa102_led* l = apa102_open();
@@ -119,14 +114,12 @@ int hsv_main(float h, float s, float v) {
 	return singlecolor_main(apa102_hsv(h, s, v));
 }
 
-
 int main(int argc, char** argv) {
 	if (argc < 5) {
 		return usage(argv[0]);
 	}
-	
+
 	setresuid(0,0,0);
-	
 
 	FILE* pidfile = fopen("/tmp/apa102.pid", "r");
 	if (pidfile != NULL) {
@@ -143,11 +136,10 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
-	
+
 	printf("starting...\n");
 
-
-	daemonize();	
+	daemonize();
 	signal(SIGINT, sighandler);
 	signal(SIGTERM, sighandler);
 
@@ -166,21 +158,17 @@ int main(int argc, char** argv) {
 		if (tmp > 0.0001) {
 			interval = 32.0 / tmp;
 		}
-		
+
 		particles_main(interval);
 
 	} else if (strcmp(argv[1], "waves") == 0) {
 		if (argc < 4) return usage(argv[0]);
 		waves_main(stof(argv[2]), stof(argv[3]));
-		
+
 	} else if (strcmp(argv[1], "bubbles") == 0) {
 		if (argc < 5) return usage(argv[0]);
 		bubbles_main(stof(argv[2]), stof(argv[3]), stof(argv[4]));
-
 	}
-	
-	
-
 
 	/* turn off */
 	struct apa102_led* l = apa102_open();
@@ -197,8 +185,8 @@ int main(int argc, char** argv) {
 
 	apa102_sync();
 	apa102_close();
-	
+
 	printf("apa102 exiting\n");
-	
+
 	unlink("/tmp/apa102.pid");
 }
