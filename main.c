@@ -27,6 +27,7 @@ int usage(const char* name) {
 	return 1;
 }
 
+// TODO: refactor to accessor with static running
 int running = 1;
 
 void sighandler(int signum) {
