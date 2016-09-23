@@ -10,15 +10,12 @@
 
 #include "color.h"
 
-
 extern int running;
-
 
 int waves_main(float period, float speed) {
 
 	struct apa102_led* l = apa102_open();
 	if (l == NULL) return 1;
-
 
 	float offset = 0;
 
@@ -31,7 +28,6 @@ int waves_main(float period, float speed) {
 			float v = (sinf( x + offset ) + 1.0) / 2.0;
 
 			l[i] = apa102_hsv(v, 1, 1);
-
 
 			offset += speed;
 			if (offset > 2*3.1415) offset -= 2*3.1415;
@@ -49,6 +45,4 @@ int waves_main(float period, float speed) {
 	apa102_close();
 
 	return 0;
-
-
 }
