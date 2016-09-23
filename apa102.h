@@ -6,6 +6,7 @@
 #include <inttypes.h>
 
 struct apa102_led {
+  // global brightness (0xE0 | 1 to 31)
 	uint8_t global;
 
 	uint8_t b;

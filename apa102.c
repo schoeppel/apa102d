@@ -14,7 +14,10 @@
 
 #include "apa102.h"
 
-static struct apa102_led leds[1 + 288 + 5];
+// 1 at the start for the start frame
+// 1 at the end for the end frame + 4 extra end frames for weird timing movements
+//   (288 / 2 (half Hz clock drift) / 32 (end frame length))
+static struct apa102_led leds[1 + 288 + 1 + 4];
 
 static int fd = -1;
 
