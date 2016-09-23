@@ -114,13 +114,7 @@ int hsv_main(float h, float s, float v) {
 	return singlecolor_main(apa102_hsv(h, s, v));
 }
 
-int main(int argc, char** argv) {
-	if (argc < 5) {
-		return usage(argv[0]);
-	}
-
-	setresuid(0,0,0);
-
+static void kill_existing() {
 	FILE* pidfile = fopen("/tmp/apa102.pid", "r");
 	if (pidfile != NULL) {
 		int pid;
@@ -135,7 +129,19 @@ int main(int argc, char** argv) {
 				unlink("/tmp/apa102.pid");
 			}
 		}
+
+		fclose(pidfile);
 	}
+}
+
+int main(int argc, char** argv) {
+	if (argc < 5) {
+		return usage(argv[0]);
+	}
+
+	setresuid(0, 0, 0);
+
+	kill_existing();
 
 	printf("starting...\n");
 
