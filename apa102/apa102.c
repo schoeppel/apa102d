@@ -110,6 +110,13 @@ struct apa102_led hsv_fade(struct hsv_t* source, struct hsv_t* target, float tar
 	);
 }
 
+void hsv_fill(struct hsv_t* color) {
+	struct apa102_led led_value = apa102_hsv_t(color);
+
+	for (unsigned int i = 0; i < NUM_LEDS; i++)
+		leds[1+i] = led_value;
+}
+
 struct apa102_led* apa102_open() {
 	memset(leds, 0, sizeof(struct apa102_led));
 	memset(leds + 1 + NUM_LEDS, 0xff, sizeof(struct apa102_led) * 5);

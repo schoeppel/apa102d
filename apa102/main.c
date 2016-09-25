@@ -25,6 +25,7 @@ int usage(const char* name) {
 	fprintf(stderr, "       %s rgb <red> <green> <blue> (0.0-1.0)\n", name);
 	fprintf(stderr, "       %s particles <period> (1-1000)\n", name);
 	fprintf(stderr, "       %s bubbles <hue> <saturation> <value> (0.0-1.0)\n", name);
+	fprintf(stderr, "       %s step <hue> <saturation> <value> (0.0-1.0) <step-time (ms)>\n", name);
 
 	return 1;
 }
