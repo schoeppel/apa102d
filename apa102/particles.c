@@ -107,7 +107,7 @@ static void particle_col(struct particle* a, struct particle* b) {
 
 			n->flags |= 2;
 			n->pos = pos;
-			n->len = 1.0 / 288.0;
+			n->len = 1.0 / (float) NUM_LEDS;
 			n->speed =  (rand() % 64) / 256.0 + speed;
 
 			n->ttl = 0.6;

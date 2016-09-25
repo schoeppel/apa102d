@@ -15,9 +15,9 @@
 #include "apa102.h"
 
 // 1 at the start for the start frame
-// 1 at the end for the end frame + 4 extra end frames for weird timing movements
-//   (288 / 2 (half Hz clock drift) / 32 (end frame length))
-static struct apa102_led leds[1 + NUM_LEDS + 1 + 4];
+// 1 at the end for the end frame + some extra end frames for weird timing movements
+//   (NUM_LEDS / 2 (half Hz clock drift) / 32 (end frame length))
+static struct apa102_led leds[1 + NUM_LEDS + 1 + (NUM_LEDS / 2 / 32)];
 
 static int fd = -1;
 
@@ -112,9 +112,9 @@ struct apa102_led hsv_fade(struct hsv_t* source, struct hsv_t* target, float tar
 
 struct apa102_led* apa102_open() {
 	memset(leds, 0, sizeof(struct apa102_led));
-	memset(leds + 1 + 288, 0xff, sizeof(struct apa102_led) * 5);
+	memset(leds + 1 + NUM_LEDS, 0xff, sizeof(struct apa102_led) * 5);
 
-	for (unsigned int i = 0; i < 288; i++) {
+	for (unsigned int i = 0; i < NUM_LEDS; i++) {
 		/* 1/2 brightness */
 		leds[1+i].global = 0xe0 | 1;
 

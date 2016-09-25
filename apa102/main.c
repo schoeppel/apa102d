@@ -128,15 +128,17 @@ int main(int argc, char** argv) {
 	signal(SIGINT, sighandler);
 	signal(SIGTERM, sighandler);
 
-	if (strcmp(argv[1], "hsv") == 0) {
+	char* effect_name = argv[1];
+
+	if (strcmp(effect_name, "hsv") == 0) {
 		if (argc < 5) return usage(argv[0]);
 		hsv_main(stof(argv[2]), stof(argv[3]), stof(argv[4]));
 
-	} else if (strcmp(argv[1], "rgb") == 0) {
+	} else if (strcmp(effect_name, "rgb") == 0) {
 		if (argc < 5) return usage(argv[0]);
 		rgb_main(stof(argv[2]), stof(argv[3]), stof(argv[4]));
 
-	} else if (strcmp(argv[1], "particles") == 0) {
+	} else if (strcmp(effect_name, "particles") == 0) {
 		if (argc < 3) return usage(argv[0]);
 		float tmp = stof(argv[4]);
 		int interval = 10000;
@@ -146,14 +148,14 @@ int main(int argc, char** argv) {
 
 		particles_main(interval);
 
-	} else if (strcmp(argv[1], "waves") == 0) {
+	} else if (strcmp(effect_name, "waves") == 0) {
 		if (argc < 4) return usage(argv[0]);
 		waves_main(stof(argv[2]), stof(argv[3]));
 
-	} else if (strcmp(argv[1], "bubbles") == 0) {
+	} else if (strcmp(effect_name, "bubbles") == 0) {
 		if (argc < 5) return usage(argv[0]);
 		bubbles_main(stof(argv[2]), stof(argv[3]), stof(argv[4]));
-	} else if (strcmp(argv[1], "step") == 0) {
+	} else if (strcmp(effect_name, "step") == 0) {
 		if (argc < 6) return usage(argv[0]);
 		struct hsv_t color = {
 			.h = stof(argv[2]),
