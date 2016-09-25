@@ -1,6 +1,7 @@
 #include "apa102.h"
 
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "color.h"
 
