@@ -16,6 +16,7 @@
 #include "particles.h"
 #include "simple_step.h"
 #include "single_color.h"
+#include "stroboscope.h"
 #include "waves.h"
 
 #define stof(a) strtof(a, NULL)
@@ -26,6 +27,7 @@ int usage(const char* name) {
 	fprintf(stderr, "       %s particles <period> (1-1000)\n", name);
 	fprintf(stderr, "       %s bubbles <hue> <saturation> <value> (0.0-1.0)\n", name);
 	fprintf(stderr, "       %s step <hue> <saturation> <value> (0.0-1.0) <step-time (ms)>\n", name);
+	fprintf(stderr, "       %s stroboscope <amount of light (%)> (0.0-1.0)\n", name);
 
 	return 1;
 }
@@ -115,7 +117,7 @@ static void kill_existing() {
 }
 
 int main(int argc, char** argv) {
-	if (argc < 5) {
+	if (argc < 3) {
 		return usage(argv[0]);
 	}
 
@@ -164,6 +166,10 @@ int main(int argc, char** argv) {
 			.v = stof(argv[4])
 		};
 		simplestep_main(color, atoi(argv[5]));
+	} else if (strcmp(effect_name, "stroboscope") == 0) {
+		struct hsv_t white = { .h = 0.0f, .s = 0.0f, .v = 1.0f };
+		if (argc < 3) stroboscope_main(white, 0.05f);
+		else if (argc < 4) stroboscope_main(white, stof(argv[2]));
 	}
 
 	/* turn off */
