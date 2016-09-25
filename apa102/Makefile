@@ -1,5 +1,5 @@
 apa102: *.c *.h
-	gcc --std=gnu99 -o apa102 main.c particles.c waves.c bubbles.c single_color.c apa102.c color.c -lrt -lm
+	gcc --std=gnu99 -o apa102 main.c particles.c waves.c bubbles.c single_color.c simple_step.c apa102.c color.c -lrt -lm
 	chmod u+s apa102
 
 install: apa102

@@ -1,10 +1,3 @@
-#include "apa102.h"
-#include "particles.h"
-#include "waves.h"
-#include "color.h"
-#include "single_color.h"
-#include "bubbles.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -16,6 +9,14 @@
 #include <unistd.h>
 #include <math.h>
 #include <signal.h>
+
+#include "apa102.h"
+#include "bubbles.h"
+#include "color.h"
+#include "particles.h"
+#include "simple_step.h"
+#include "single_color.h"
+#include "waves.h"
 
 #define stof(a) strtof(a, NULL)
 
@@ -152,20 +153,28 @@ int main(int argc, char** argv) {
 	} else if (strcmp(argv[1], "bubbles") == 0) {
 		if (argc < 5) return usage(argv[0]);
 		bubbles_main(stof(argv[2]), stof(argv[3]), stof(argv[4]));
+	} else if (strcmp(argv[1], "step") == 0) {
+		if (argc < 6) return usage(argv[0]);
+		struct hsv_t color = {
+			.h = stof(argv[2]),
+			.s = stof(argv[3]),
+			.v = stof(argv[4])
+		};
+		simplestep_main(color, atoi(argv[5]));
 	}
 
 	/* turn off */
 	struct apa102_led* l = apa102_open();
 	if (l == NULL) return 1;
 
-	struct apa102_led color;
-	color.global = 0xe0 | 1;
-	color.r = 0;
-	color.g = 0;
-	color.b = 0;
+	struct apa102_led black;
+	black.global = 0xe0 | 1;
+	black.r = 0;
+	black.g = 0;
+	black.b = 0;
 
 	for (int i = 0; i < NUM_LEDS; i++)
-		l[i] = color;
+		l[i] = black;
 
 	apa102_sync();
 	apa102_close();

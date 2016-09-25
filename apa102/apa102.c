@@ -97,6 +97,19 @@ struct apa102_led apa102_hsv(float h, float s, float v) {
 	return apa102_rgb(r, g, b);
 }
 
+struct apa102_led apa102_hsv_t(struct hsv_t* hsv) {
+	return apa102_hsv(hsv->h, hsv->s, hsv->v);
+}
+
+struct apa102_led hsv_fade(struct hsv_t* source, struct hsv_t* target, float targetPercent) {
+	float sourcePercent = 1 - targetPercent;
+	return apa102_hsv(
+    source->h * sourcePercent + target->h * targetPercent,
+		source->s * sourcePercent + target->s * targetPercent,
+		source->v * sourcePercent + target->v * targetPercent
+	);
+}
+
 struct apa102_led* apa102_open() {
 	memset(leds, 0, sizeof(struct apa102_led));
 	memset(leds + 1 + 288, 0xff, sizeof(struct apa102_led) * 5);
