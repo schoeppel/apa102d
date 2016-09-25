@@ -11,32 +11,35 @@ extern int running;
 
 int simplestep_main(struct hsv_t color, int step_length_ms) {
 	struct hsv_t black = { .h = 0.0, .s = 0.0, .v = 0.0 };
-	struct timespec wait = { .tv_sec = 0, .tv_nsec = (step_length_ms - 1) * 1000000 };
-	struct timespec fade_wait = { .tv_sec = 0, .tv_nsec = 100000 };
+	struct timespec wait = { .tv_sec = 0, .tv_nsec =  5 * 1000 * 1000 };
 
 	struct apa102_led black_led = apa102_hsv_t(&black);
-	struct apa102_led* l = apa102_open();
+	struct apa102_led* all_leds = apa102_open();
 
 	int current_led = 0;
+	float current_fade = 0.0;
 
-	if (l == NULL) return 1;
+	if (all_leds == NULL) return 1;
 
 	for (int i = 0; i < NUM_LEDS; i++)
-		l[i] = black_led;
+		all_leds[i] = black_led;
 
 	while(running) {
-		for(int i = 1; i < 11; i = i + 1) {
-			l[current_led] = hsv_fade(&black, &color, i / 10.0);
-			l[(current_led + NUM_LEDS - 1) % NUM_LEDS] = hsv_fade(&color, &black, i/10.0);
+		if (current_fade >= 1.0) {
+			all_leds[current_led] = apa102_hsv_t(&color);
+			all_leds[(current_led + NUM_LEDS - 1) % NUM_LEDS] = apa102_hsv_t(&black);
 
-			apa102_sync();
-			nanosleep(&fade_wait, NULL);
-		}
-		current_led = (current_led + 1) % NUM_LEDS;
+			current_led = (current_led + 1) % NUM_LEDS;
+			current_fade = 0.0;
+		} else {
+			all_leds[current_led] = hsv_fade(&black, &color, current_fade);
+			all_leds[(current_led + NUM_LEDS - 1) % NUM_LEDS] = hsv_fade(&color, &black, current_fade);
 
-		if (step_length_ms > 1) {
-			nanosleep(&wait, NULL);
+			current_fade = current_fade + 5.0 / ((float) step_length_ms);
 		}
+		apa102_sync();
+
+		nanosleep(&wait, NULL);
 	}
 
 	apa102_close();
