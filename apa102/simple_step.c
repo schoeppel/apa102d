@@ -10,7 +10,7 @@
 extern int running;
 
 int simplestep_main(struct hsv_t color, int step_length_ms) {
-	struct hsv_t black = { .h = 0.0, .s = 0.0, .v = 0.0 };
+	struct hsv_t black = { .h = color.h, .s = 0.0, .v = 0.0 };
 	struct timespec wait = { .tv_sec = 0, .tv_nsec =  5 * 1000 * 1000 };
 
 	struct apa102_led* all_leds = apa102_open();
