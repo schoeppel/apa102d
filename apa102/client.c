@@ -17,7 +17,7 @@ void error(char *msg) {
 
 int main(int argc, char **argv) {
 	int sockfd, portno, n;
-	int serverlen;
+	unsigned int serverlen;
 	struct sockaddr_in serveraddr;
 	struct hostent *server;
 	char *hostname;
@@ -52,12 +52,12 @@ int main(int argc, char **argv) {
 
 	/* send the message to the server */
 	serverlen = sizeof(serveraddr);
-	n = sendto(sockfd, argv[2], strlen(argv[2])+1, 0, &serveraddr, serverlen);
+	n = sendto(sockfd, argv[2], strlen(argv[2])+1, 0, (const struct sockaddr*)&serveraddr, serverlen);
 	if (n < 0)
 	  error("ERROR in sendto");
 
 	/* print the server's reply */
-	n = recvfrom(sockfd, buf, sizeof(buf), 0, &serveraddr, &serverlen);
+	n = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr*)&serveraddr, &serverlen);
 	if (n < 0)
 	  error("ERROR in recvfrom");
 	printf("Echo from server: %s", buf);

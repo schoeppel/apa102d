@@ -81,14 +81,14 @@ int main(int argc, char** argv) {
 			perror("poll");
 			return 1;
 		} else if (ret > 0) {
-			int clientlen = sizeof(clientaddr);
+			unsigned int clientlen = sizeof(clientaddr);
 			int len = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &clientaddr, &clientlen);
 			if (len <= 0) continue;
 
 			printf("Received packet\n");
 			parse_packetbuf(buf, len, bufvalptr, sizeof(bufvalptr) / sizeof(bufvalptr[0]));
 
-			ret = sendto(sockfd, buf, len, 0, &clientaddr, clientlen);
+			ret = sendto(sockfd, buf, len, 0, (struct sockaddr*)&clientaddr, clientlen);
 		}
 
 		unsigned long long now = time_ns();

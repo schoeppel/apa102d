@@ -68,7 +68,7 @@ struct apa102_led apa102_rgb(float rf, float gf, float bf) {
 }
 
 struct apa102_led apa102_hsv(float h, float s, float v) {
-	float r, g, b;
+	float r = 0.0, g = 0.0, b = 0.0;
 	float F, M, N, K;
 	int i;
 
