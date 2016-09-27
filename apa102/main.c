@@ -32,6 +32,8 @@ int running = 1;
 
 
 static void parse_packetbuf(char* buf, int buflen, char** values, unsigned int num_values) {
+	memset(values, 0, num_values * sizeof(char*));
+
 	while (buflen > 0 && num_values) {
 		*values = buf;
 		values++;
@@ -71,7 +73,10 @@ int main(int argc, char** argv) {
 	pfd.fd = sockfd;
 	pfd.events = POLLIN;
 
+	struct apa102_led* leds = apa102_open();
+	bufvalptr[0] = NULL;
 
+	void* step_state = NULL;
 	while (running) {
 		unsigned long long frame_start = time_ns();
 
@@ -98,14 +103,13 @@ int main(int argc, char** argv) {
 		}
 
 		/* call current render function */
-
+		step_state = step_step(step_state, (const char**) bufvalptr, frame_start, leds, NUM_LEDS, 144);
 	}
 
-
+	step_destroy(step_state);
 
 	/* turn off */
-	struct apa102_led* l = apa102_open();
-	if (l == NULL) return 1;
+	if (leds == NULL) return 1;
 	struct apa102_led black;
 	black.global = 0xe0 | 1;
 	black.r = 0;
@@ -113,7 +117,7 @@ int main(int argc, char** argv) {
 	black.b = 0;
 
 	for (int i = 0; i < NUM_LEDS; i++)
-		l[i] = black;
+		leds[i] = black;
 
 	apa102_sync();
 	apa102_close();

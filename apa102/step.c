@@ -16,7 +16,7 @@ void* step_step(void* last_state,
 	struct step_effect_state* current_state = (struct step_effect_state*) last_state;
 
 	if (!last_state) {
-		const char* color_code = get_message_value(message, "color", "hsv(0.0,0.0,0.0)");
+		const char* color_code = get_message_value(message, "color", "hsv(0.0,0.3,0.15)");
 		struct hsv_t color = parse_hsv_color(color_code);
 		current_state = malloc(sizeof(*current_state));
 

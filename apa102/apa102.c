@@ -188,7 +188,9 @@ const char* get_message_value(const char** message, const char* key, const char*
 	size_t keylen = strlen(key);
 
 	while (*message) {
-		if (memcmp(*message, key, keylen) == 0 && (*message)[keylen] == '=')
+		if (strlen(*message) > keylen + 1
+		    && memcmp(*message, key, keylen) == 0
+		    && (*message)[keylen] == '=')
 			return *message + keylen + 1;
 
 		message++;
