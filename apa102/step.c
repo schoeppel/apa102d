@@ -26,7 +26,7 @@ void* step_step(void* last_state,
 		current_state->black.h = color.h;
 		current_state->black.s = 0.0;
 		current_state->black.v = 0.0;
-		current_state->step_length_ms = atoi(get_message_value(message, "step_length_ms", "5"));
+		current_state->step_length_ms = atoi(get_message_value(message, "step_length_ms", "10"));
 		current_state->next_step = timestamp;
 	}
 
@@ -40,6 +40,7 @@ void* step_step(void* last_state,
 	struct hsv_t color = current_state->color;
 
 	int prev_led = (target_led + nr_leds - 1) % nr_leds;
+
 	if (fade >= 1.0) {
 		// Switch to the next LED
 		int next_led = (target_led + 1) % nr_leds;
