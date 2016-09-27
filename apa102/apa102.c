@@ -196,3 +196,15 @@ const char* get_message_value(const char** message, const char* key, const char*
 
 	return default_value;
 }
+
+struct hsv_t parse_hsv_color(const char* string) {
+	struct hsv_t result;
+	int num_scanned = sscanf(string, "hsv(%f,%f,%f)", &result.h, &result.s, &result.v);
+
+	if (num_scanned != 3) {
+		result.h = 0.0f;
+		result.s = 0.0f;
+		result.v = 0.0f;
+	}
+	return result;
+}

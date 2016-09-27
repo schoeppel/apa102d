@@ -33,5 +33,6 @@ struct apa102_led hsv_fade(struct hsv_t* source, struct hsv_t* target, float tar
 void hsv_fill(struct hsv_t* color);
 
 const char* get_message_value(const char** message, const char* key, const char* default_value);
+struct hsv_t parse_hsv_color(const char* string);
 
 #endif

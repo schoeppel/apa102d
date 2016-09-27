@@ -14,12 +14,11 @@
 #include <signal.h>
 #include <poll.h>
 
-
 #include "apa102.h"
 #include "bubbles.h"
 #include "color.h"
 #include "particles.h"
-#include "simple_step.h"
+#include "step.h"
 #include "single_color.h"
 #include "stroboscope.h"
 #include "waves.h"
