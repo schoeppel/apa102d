@@ -3,11 +3,11 @@
 ## Interesting information as arguments
 * LEDs per meter?
 * # LEDs
-* time since last call
+* time since last call? -- timestamp is better
 
 ## Lifetime of effects
-* step(own_state || NULL, message, timestamp, leds, nr_leds, leds_per_meter) -> own_state
-* destroy(own_state)
+* void* step_step(void* last_state || NULL, char** message, unsigned long long timestamp, struct apa102_led* leds, int nr_leds, int leds_per_meter)
+* destroy(void* own_state)
 
 ## Arguments to main
 Message with `effect=value0 key1=value1 key2=value2`.
