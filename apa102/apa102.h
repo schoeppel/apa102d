@@ -6,12 +6,12 @@
 #include <inttypes.h>
 
 struct apa102_led {
-  // global brightness (0xE0 | 1 to 31)
-  uint8_t global;
+	// global brightness (0xE0 | 1 to 31)
+	uint8_t global;
 
-  uint8_t b;
-  uint8_t g;
-  uint8_t r;
+	uint8_t b;
+	uint8_t g;
+	uint8_t r;
 } __attribute__((packed));
 
 struct hsv_t {
