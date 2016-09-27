@@ -160,6 +160,7 @@ int main(int argc, char** argv) {
 		bubbles_main(stof(argv[2]), stof(argv[3]), stof(argv[4]));
 	} else if (strcmp(effect_name, "step") == 0) {
 		if (argc < 6) return usage(argv[0]);
+
 		struct hsv_t color = {
 			.h = stof(argv[2]),
 			.s = stof(argv[3]),
@@ -167,9 +168,10 @@ int main(int argc, char** argv) {
 		};
 		simplestep_main(color, atoi(argv[5]));
 	} else if (strcmp(effect_name, "stroboscope") == 0) {
+		if (argc < 3) return usage(argv[0]);
+
 		struct hsv_t white = { .h = 0.0f, .s = 0.0f, .v = 1.0f };
-		if (argc < 3) stroboscope_main(white, 0.05f);
-		else if (argc < 4) stroboscope_main(white, stof(argv[2]));
+		stroboscope_main(white, stof(argv[2]));
 	}
 
 	/* turn off */
