@@ -183,3 +183,16 @@ void apa102_close() {
 	close(fd);
 	fd = -1;
 }
+
+const char* get_message_value(const char** message, const char* key, const char* default_value) {
+	size_t keylen = strlen(key);
+
+	while (*message) {
+		if (memcmp(*message, key, keylen) == 0 && (*message)[keylen] == '=')
+			return *message + keylen + 1;
+
+		message++;
+	}
+
+	return default_value;
+}

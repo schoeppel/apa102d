@@ -1,5 +1,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <syslog.h>
@@ -9,6 +12,8 @@
 #include <unistd.h>
 #include <math.h>
 #include <signal.h>
+#include <poll.h>
+
 
 #include "apa102.h"
 #include "bubbles.h"
@@ -19,165 +24,89 @@
 #include "stroboscope.h"
 #include "waves.h"
 
-#define stof(a) strtof(a, NULL)
-
 int usage(const char* name) {
-	fprintf(stderr, "Usage: %s hsv <hue> <saturation> <value> (0.0-1.0)\n", name);
-	fprintf(stderr, "       %s rgb <red> <green> <blue> (0.0-1.0)\n", name);
-	fprintf(stderr, "       %s particles <period> (1-1000)\n", name);
-	fprintf(stderr, "       %s bubbles <hue> <saturation> <value> (0.0-1.0)\n", name);
-	fprintf(stderr, "       %s step <hue> <saturation> <value> (0.0-1.0) <step-time (ms)>\n", name);
-	fprintf(stderr, "       %s stroboscope <amount of light (%)> (0.0-1.0)\n", name);
-
+	fprintf(stderr, "Usage: %s\n", name);
 	return 1;
 }
 
-// TODO: refactor to accessor with static running
 int running = 1;
 
-void sighandler(int signum) {
-	running = 0;
-}
 
-int daemonize() {
-	pid_t pid, sid;
+static void parse_packetbuf(char* buf, int buflen, char** values, unsigned int num_values) {
+	while (buflen > 0 && num_values) {
+		*values = buf;
+		values++;
+		num_values--;
 
-	/* Fork off the parent process */
-	pid = fork();
-	if (pid < 0) {
-		exit(EXIT_FAILURE);
-	}
-	/* If we got a good PID, then
-	we can exit the parent process. */
-	if (pid > 0) {
-		exit(EXIT_SUCCESS);
-	}
-
-	/* Change the file mode mask */
-	umask(0);
-
-	int log_fd = open("/tmp/apa102.log", O_WRONLY | O_APPEND | O_CREAT, 0644);
-	int input_fd = open("/dev/null", O_RDONLY);
-
-	if (log_fd < 0) {
-		perror("open logfile");
-	}
-
-	/* Create a new SID for the child process */
-	sid = setsid();
-	if (sid < 0) {
-		/* Log the failure */
-		exit(EXIT_FAILURE);
-	}
-
-	/* Change the current working directory */
-	if ((chdir("/")) < 0) {
-		/* Log the failure */
-		exit(EXIT_FAILURE);
-	}
-
-	/* Close out the standard file descriptors */
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
-
-	dup2(input_fd, STDIN_FILENO);
-	dup2(log_fd, STDOUT_FILENO);
-	dup2(log_fd, STDERR_FILENO);
-
-	printf("apa102 started (%i)\n", getpid());
-
-	FILE* pidfile = fopen("/tmp/apa102.pid", "w");
-	if (pidfile != NULL) {
-		fprintf(pidfile, "%u", getpid());
-		fclose(pidfile);
-	} else {
-		printf("Could not write pidfile\n");
+		size_t len = strlen(buf);
+		buf += len + 1;
+		buflen -= len + 1;
 	}
 }
 
-static void kill_existing() {
-	FILE* pidfile = fopen("/tmp/apa102.pid", "r");
-	if (pidfile != NULL) {
-		int pid;
-		if (fscanf(pidfile, "%u", &pid) == 1) {
-			if (kill(pid, SIGINT) == 0) {
-				printf("running daemon detected. signal sent.\n");
-				while (access("/tmp/apa102.pid", F_OK) == 0) {
-					usleep(10000);
-				}
-			} else {
-				printf("stale pidfile detected.\n");
-				unlink("/tmp/apa102.pid");
-			}
-		}
-
-		fclose(pidfile);
-	}
-}
 
 int main(int argc, char** argv) {
-	if (argc < 3) {
-		return usage(argv[0]);
+	int portno = 1910;
+	struct sockaddr_in serveraddr, clientaddr;
+	char buf[65536];
+	char *bufvalptr[256];
+
+
+	int ret;
+
+	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	int optval = 1;
+	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));
+
+	bzero((char *) &serveraddr, sizeof(serveraddr));
+	serveraddr.sin_family = AF_INET;
+	serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	serveraddr.sin_port = htons((unsigned short)portno);
+
+	if (bind(sockfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) {
+		perror("Could not bind\n");
+		return 1;
 	}
 
-	setresuid(0, 0, 0);
+	struct pollfd pfd;
+	pfd.fd = sockfd;
+	pfd.events = POLLIN;
 
-	kill_existing();
 
-	printf("starting...\n");
+	while (running) {
+		unsigned long long frame_start = time_ns();
 
-	daemonize();
-	signal(SIGINT, sighandler);
-	signal(SIGTERM, sighandler);
+		ret = poll(&pfd, 1, 4);
+		if (ret < 0) {
+			perror("poll");
+			return 1;
+		} else if (ret > 0) {
+			int clientlen = sizeof(clientaddr);
+			int len = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &clientaddr, &clientlen);
+			if (len <= 0) continue;
 
-	char* effect_name = argv[1];
+			printf("Received packet\n");
+			parse_packetbuf(buf, len, bufvalptr, sizeof(bufvalptr) / sizeof(bufvalptr[0]));
 
-	if (strcmp(effect_name, "hsv") == 0) {
-		if (argc < 5) return usage(argv[0]);
-		hsv_main(stof(argv[2]), stof(argv[3]), stof(argv[4]));
-
-	} else if (strcmp(effect_name, "rgb") == 0) {
-		if (argc < 5) return usage(argv[0]);
-		rgb_main(stof(argv[2]), stof(argv[3]), stof(argv[4]));
-
-	} else if (strcmp(effect_name, "particles") == 0) {
-		if (argc < 3) return usage(argv[0]);
-		float tmp = stof(argv[4]);
-		int interval = 10000;
-		if (tmp > 0.0001) {
-			interval = 32.0 / tmp;
+			ret = sendto(sockfd, buf, len, 0, &clientaddr, clientlen);
 		}
 
-		particles_main(interval);
+		unsigned long long now = time_ns();
+		unsigned long long duration = now - frame_start;
 
-	} else if (strcmp(effect_name, "waves") == 0) {
-		if (argc < 4) return usage(argv[0]);
-		waves_main(stof(argv[2]), stof(argv[3]));
+		if (duration < 5000000) {
+			usleep((5000000 - duration) / 1000);
+		}
 
-	} else if (strcmp(effect_name, "bubbles") == 0) {
-		if (argc < 5) return usage(argv[0]);
-		bubbles_main(stof(argv[2]), stof(argv[3]), stof(argv[4]));
-	} else if (strcmp(effect_name, "step") == 0) {
-		if (argc < 6) return usage(argv[0]);
+		/* call current render function */
 
-		struct hsv_t color = {
-			.h = stof(argv[2]),
-			.s = stof(argv[3]),
-			.v = stof(argv[4])
-		};
-		simplestep_main(color, atoi(argv[5]));
-	} else if (strcmp(effect_name, "stroboscope") == 0) {
-		if (argc < 3) return usage(argv[0]);
-
-		struct hsv_t white = { .h = 0.0f, .s = 0.0f, .v = 1.0f };
-		stroboscope_main(white, stof(argv[2]));
 	}
+
+
 
 	/* turn off */
 	struct apa102_led* l = apa102_open();
 	if (l == NULL) return 1;
-
 	struct apa102_led black;
 	black.global = 0xe0 | 1;
 	black.r = 0;

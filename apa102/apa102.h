@@ -32,4 +32,6 @@ struct apa102_led apa102_hsv_t(struct hsv_t* hsv);
 struct apa102_led hsv_fade(struct hsv_t* source, struct hsv_t* target, float targetPercent);
 void hsv_fill(struct hsv_t* color);
 
+const char* get_message_value(const char** message, const char* key, const char* default_value);
+
 #endif
