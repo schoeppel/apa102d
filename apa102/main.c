@@ -104,6 +104,7 @@ int main(int argc, char** argv) {
 
 		/* call current render function */
 		step_state = step_step(step_state, (const char**) bufvalptr, frame_start, leds, NUM_LEDS, 144);
+		apa102_sync();
 	}
 
 	step_destroy(step_state);
