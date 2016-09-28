@@ -10,25 +10,29 @@
 
 #include "color.h"
 
-extern int running;
+
+#define PI 3.1415
+#define MAX_BUBBLES 50
+
 
 struct bubble {
 		float pos;
 		float size;
 };
 
-#define PI 3.1415
-#define MAX_BUBBLES 50
 
-struct bubble bubbles[MAX_BUBBLES];
+struct bubbles_effect_state {
+	struct bubble bubbles[MAX_BUBBLES];
 
-static void render(struct apa102_led* led, unsigned int ledcount, float h, float s, float v) {
+	struct hsv_t color1;
+	struct hsv_t color2;
+};
+
+
+static void render(struct apa102_led* led, unsigned int ledcount, struct bubbles_effect_state* state) {
 	unsigned int border = ledcount / 4;
 
 	float str[ledcount];
-
-	float hc = h + 0.5f;
-	if (hc > 1.0) hc -= 1.0f;
 
 	for (unsigned int i = 0; i < border; i++) {
 		str[i] = 1.0;
@@ -39,13 +43,13 @@ static void render(struct apa102_led* led, unsigned int ledcount, float h, float
 	}
 
 	for (unsigned int i = 0; i < MAX_BUBBLES; i++) {
-		if (bubbles[i].pos < 0.0) continue;
-		else if (bubbles[i].pos > 1.5) { bubbles[i].pos = -1.0; continue; }
-		else { bubbles[i].pos += 0.0002; }
+		if (state->bubbles[i].pos < 0.0) continue;
+		else if (state->bubbles[i].pos > 1.5) { state->bubbles[i].pos = -1.0; continue; }
+		else { state->bubbles[i].pos += 0.0002; }
 
-		float led_center = bubbles[i].pos * ledcount;
-		for (unsigned int y = led_center - bubbles[i].size * ledcount * PI; y <= led_center + bubbles[i].size * ledcount * PI; y++) {
-			float intens = cosf(((float)y - led_center) / (bubbles[i].size * ledcount) );
+		float led_center = state->bubbles[i].pos * ledcount;
+		for (unsigned int y = led_center - state->bubbles[i].size * ledcount * PI; y <= led_center + state->bubbles[i].size * ledcount * PI; y++) {
+			float intens = cosf(((float)y - led_center) / (state->bubbles[i].size * ledcount) );
 
 			if (intens > 0.0 && y < ledcount) {
 				str[y] += intens;
@@ -56,52 +60,45 @@ static void render(struct apa102_led* led, unsigned int ledcount, float h, float
 	for (unsigned int i = 0; i < ledcount; i++) {
 		if (str[i] > 1.0) str[i] = 1.0;
 
-		float hblend = (hc * str[i] + h * (1.0 - str[i]));
-		led[i] = apa102_hsv(hblend, s, v);
+		led[i] = hsv_fade(&state->color1, &state->color2, str[i]);
 	}
 }
 
-int bubbles_main(float h, float s, float v) {
 
-	struct apa102_led* l = apa102_open();
-	if (l == NULL) return 1;
-	struct particle* p;
+void* bubbles_step(void* last_state,
+                const char** message,
+                unsigned long long timestamp,
+                struct apa102_led* leds,
+                int nr_leds,
+                int leds_per_meter) {
 
-	unsigned int count = 0;
+	if (last_state == NULL) {
+		last_state = malloc(sizeof(struct bubbles_effect_state));
+		memset(last_state, 0, sizeof(struct bubbles_effect_state));
+	}
+	struct bubbles_effect_state* state = (struct bubbles_effect_state*)last_state;
 
+	state->color1 = parse_hsv_color(get_message_value(message, "color", "hsv(0.0,1.0,0.15)"));
+	state->color2 = parse_hsv_color(get_message_value(message, "color2", "hsv(0.5,1.0,0.15)"));
+
+	int index = -1;
 	for (unsigned int i = 0; i < MAX_BUBBLES; i++) {
-		bubbles[i].pos = -1.0;
+		if (state->bubbles[i].pos < 0.0) {
+			index = i;
+			break;
+		}
 	}
 
-	while (running) {
-		/* create */
-		int index = -1;
-		for (unsigned int i = 0; i < MAX_BUBBLES; i++) {
-			if (bubbles[i].pos < 0.0) {
-				index = i;
-				break;
-			}
-		}
-
-		if (index >= 0 && rand() % 1024 == 0) {
-			bubbles[index].pos = 0.0;
-			bubbles[index].size = (rand() % 40 + 10) / 1000.0;
-		}
-
-		unsigned long long time_start = time_ns();
-		render(l, NUM_LEDS, h, s, v);
-		apa102_sync();
-
-		unsigned long long time_end = time_ns();
-		unsigned int frame_us = (time_end - time_start) / 1000;
-		int sleep = 10000 - frame_us;
-
-		if (sleep > 0) usleep(sleep); else
-		printf("warning %i us\n", sleep);
-
+	if (index >= 0 && rand() % 1024 == 0) {
+		state->bubbles[index].pos = 0.0;
+		state->bubbles[index].size = (rand() % 40 + 10) / 1000.0;
 	}
 
-	apa102_close();
+	render(leds, nr_leds, state);
 
-	return 0;
+	return last_state;
+}
+
+void bubbles_destroy(void* last_state) {
+	free(last_state);
 }
