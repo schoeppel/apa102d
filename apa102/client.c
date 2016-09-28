@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
 
 	/* check command line arguments */
 	if (argc < 2) {
-	   fprintf(stderr,"usage: %s <hostname> <key1>=<value1> [... <keyN>=<valueN>]\n", argv[0]);
+	   fprintf(stderr,"usage: %s <hostname> [<key1>=<value1> [... <keyN>=<valueN>] ]\n", argv[0]);
 	   exit(0);
 	}
 
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 			if (buf[i] == '\0') buf[i] = ' ';
 		}
 
-		printf("%s", buf);
+		printf("%s\n", buf);
 
 		return 0;
 	}

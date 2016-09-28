@@ -22,6 +22,7 @@
 #include "single_color.h"
 #include "stroboscope.h"
 #include "waves.h"
+#include "off.h"
 
 struct effect_specification {
 	char* name;
@@ -29,15 +30,18 @@ struct effect_specification {
 	void (*destroy)(void*);
 };
 
-static const struct effect_specification effects[] = {{
-	.name = "step",
-	.step = step_step,
-	.destroy = step_destroy
-}, {
-	.name = NULL,
-	.step = NULL,
-	.destroy = NULL
-}};
+static const struct effect_specification effects[] = {
+	{
+		.name = "off",
+		.step = off_step,
+		.destroy = off_destroy
+	},
+	{
+		.name = "step",
+		.step = step_step,
+		.destroy = step_destroy
+	}
+};
 
 int running = 1;
 
@@ -64,6 +68,7 @@ int main(int argc, char** argv) {
 	int portno = 1910;
 	struct sockaddr_in serveraddr, clientaddr;
 	char buf[65536];
+	unsigned int buf_len = 0;
 	char *bufvalptr[256];
 
 	int ret;
@@ -102,12 +107,28 @@ int main(int argc, char** argv) {
 		} else if (ret > 0) {
 			unsigned int clientlen = sizeof(clientaddr);
 			int len = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *) &clientaddr, &clientlen);
-			if (len <= 0) continue;
+			if (len < 0) continue;
 
 			printf("Received packet\n");
-			parse_packetbuf(buf, len, bufvalptr, sizeof(bufvalptr) / sizeof(bufvalptr[0]));
+			if (len > 0) {
+				buf_len = len;
 
-			ret = sendto(sockfd, buf, len, 0, (struct sockaddr*)&clientaddr, clientlen);
+				parse_packetbuf(buf, len, bufvalptr, sizeof(bufvalptr) / sizeof(bufvalptr[0]));
+				const char* new_effect_name = get_message_value((const char**)bufvalptr, "effect", "off");
+
+				/* switch effect? */
+				if (strcmp(new_effect_name, current_effect->name)) {
+					current_effect->destroy(effect_state);
+					effect_state = NULL;
+
+					for (unsigned int i = 0; i < sizeof(effects)/sizeof(effects[0]); i++) {
+						if (strcmp(effects[i].name, new_effect_name) == 0) {
+							current_effect = &effects[i];
+						}
+					}
+				}
+			}
+			ret = sendto(sockfd, buf, buf_len, 0, (struct sockaddr*)&clientaddr, clientlen);
 		}
 
 		unsigned long long now = time_ns();
@@ -123,6 +144,7 @@ int main(int argc, char** argv) {
 	}
 
 	current_effect->destroy(effect_state);
+	effect_state = NULL;
 
 	/* turn off */
 	if (leds == NULL) return 1;
