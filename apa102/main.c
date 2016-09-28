@@ -40,6 +40,11 @@ static const struct effect_specification effects[] = {
 		.name = "step",
 		.step = step_step,
 		.destroy = step_destroy
+	},
+	{
+		.name = "particles",
+		.step = particles_step,
+		.destroy = particles_destroy
 	}
 };
 

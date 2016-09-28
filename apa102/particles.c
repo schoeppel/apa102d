@@ -10,11 +10,7 @@
 
 #include "color.h"
 
-extern int running;
-
 #define MAX_PARTICLES 200
-
-unsigned int col_matrix[NUM_LEDS];
 
 struct particle {
 	uint32_t flags;
@@ -31,9 +27,14 @@ struct particle {
 	float ttl;
 };
 
-struct particle particles[MAX_PARTICLES];
 
-static struct particle* create_particle(unsigned int flags) {
+struct particles_effect_state {
+	unsigned int count;
+	unsigned int col_matrix[NUM_LEDS];
+	struct particle particles[MAX_PARTICLES];
+};
+
+static struct particle* create_particle(unsigned int flags, struct particles_effect_state* state) {
 	unsigned int start = 0;
 
 	if (! flags) {
@@ -41,11 +42,11 @@ static struct particle* create_particle(unsigned int flags) {
 	}
 
 	for (int i = start; i < MAX_PARTICLES; i++) {
-		if (particles[i].flags == 0) {
-			memset(&particles[i], 0, sizeof(struct particle));
-			particles[i].flags = 1;
+		if (state->particles[i].flags == 0) {
+			memset(&state->particles[i], 0, sizeof(struct particle));
+			state->particles[i].flags = 1;
 
-			return &particles[i];
+			return &state->particles[i];
 		}
 	}
 
@@ -73,7 +74,7 @@ static void target_add(struct apa102_led* target, struct particle* src, float fa
 	}
 }
 
-static void particle_col(struct particle* a, struct particle* b) {
+static void particle_col(struct particle* a, struct particle* b, struct particles_effect_state* state) {
 	if (a->speed * b->speed < 0) {
 		if (fabs(fabs(a->speed) - fabs(b->speed))  > 0.2)
 			return;
@@ -83,7 +84,7 @@ static void particle_col(struct particle* a, struct particle* b) {
 		float speed = (a->speed + b->speed) / 2;
 		float ttl = (a->ttl + b->ttl) / 2;
 
-		struct particle* n = create_particle(0);
+		struct particle* n = create_particle(0, state);
 		if (n) {
 			n->pos = pos;
 			n->len = len;
@@ -102,7 +103,7 @@ static void particle_col(struct particle* a, struct particle* b) {
 		}
 
 		for (int i = 0; i < 8; i++) {
-			struct particle* n = create_particle(0);
+			struct particle* n = create_particle(0, state);
 			if (n) {
 
 			n->flags |= 2;
@@ -132,23 +133,23 @@ static void particle_col(struct particle* a, struct particle* b) {
 	}
 }
 
-static void render(struct apa102_led* target, unsigned int num_leds, struct particle* src, unsigned int num_particles) {
+static void render(struct apa102_led* target, unsigned int num_leds, struct particle* src, unsigned int num_particles, struct particles_effect_state* state) {
 	static unsigned long long time_last;
 	unsigned long long time_current = time_ns();
 
 	unsigned int time_diff = time_current - time_last;
 	if (time_last == 0) time_diff = 0;
 
-	for (int i = 0; i < num_leds; i++) {
+	for (unsigned int i = 0; i < num_leds; i++) {
 		target[i].r = 0;
 		target[i].g = 0;
 		target[i].b = 0;
 		target[i].global = 0xe0 | 1;
 	}
 
-	memset(col_matrix, 0xff, sizeof(col_matrix));
+	memset(state->col_matrix, 0xff, sizeof(state->col_matrix));
 
-	for (int i = 0; i < num_particles; i++) {
+	for (unsigned int i = 0; i < num_particles; i++) {
 		if (! src[i].flags)
 			continue;
 
@@ -193,7 +194,7 @@ static void render(struct apa102_led* target, unsigned int num_leds, struct part
 		}
 
 		for (int j = led_start_a - 1; j <= led_end_a; j++) {
-			if (j < 0 || j >= num_leds)
+			if (j < 0 || j >= (int)num_leds)
 				continue;
 
 			if (j < (int)led_start_a) {
@@ -209,13 +210,13 @@ static void render(struct apa102_led* target, unsigned int num_leds, struct part
 
 			if (i < 64) {
 
-			if (col_matrix[j] != 0xffffffff) {
-				particle_col(src + col_matrix[j], src + i);
+			if (state->col_matrix[j] != 0xffffffff) {
+				particle_col(src + state->col_matrix[j], src + i, state);
 				if (src[i].flags == 0)
 					continue;
 
 			} else {
-				col_matrix[j] = i;
+				state->col_matrix[j] = i;
 			}
 
 			}
@@ -225,52 +226,43 @@ static void render(struct apa102_led* target, unsigned int num_leds, struct part
 	time_last = time_current;
 }
 
-int particles_main(int particle_freq) {
-	memset(particles, 0, sizeof(particles));
 
-	struct apa102_led* l = apa102_open();
-	if (l == NULL) return 1;
-	struct particle* p;
+void* particles_step(void* last_state,
+                const char** message,
+                unsigned long long timestamp,
+                struct apa102_led* leds,
+                int nr_leds,
+                int leds_per_meter) {
 
-	unsigned int count = 0;
-
-	while (running) {
-
-		if (count++ % particle_freq == 0) {
-
-			p = create_particle(1);
-			if (p != NULL) {
-				p->color = hsv_to_rgbw(rand() % (256*6), 255, 255);
-
-				p->speed = (rand() % 32) / 100.0 + 0.4;
-				p->pos = 0;
-				p->len = (rand() % 100) / 10000.0;
-
-				if (rand() % 2 == 0) {
-					p->pos = 1;
-					p->speed = -1.0 + (rand() % 20) / 100.0;
-				}
-			}
-		}
-
-		unsigned long long time_start = time_ns();
-
-		render(l, NUM_LEDS, particles, MAX_PARTICLES);
-
-		apa102_sync();
-
-		unsigned long long time_end = time_ns();
-
-		unsigned int frame_us = (time_end - time_start) / 1000;
-
-		int sleep = 5000 - frame_us;
-
-		if (sleep > 0) usleep(sleep); else
-		printf("warning %i us\n", sleep);
-
+	if (last_state == NULL) {
+		last_state = malloc(sizeof(struct particles_effect_state));
+		memset(last_state, 0, sizeof(struct particles_effect_state));
 	}
 
-	apa102_close();
+	struct particles_effect_state* state = (struct particles_effect_state*)last_state;
 
-	return 0;
+	unsigned int particle_freq = 50;
+
+	if (state->count++ % particle_freq == 0) {
+		struct particle* p = create_particle(1, state);
+		if (p != NULL) {
+			p->color = hsv_to_rgbw(rand() % (256*6), 255, 255);
+
+			p->speed = (rand() % 32) / 100.0 + 0.4;
+			p->pos = 0;
+			p->len = (rand() % 100) / 10000.0;
+
+			if (rand() % 2 == 0) {
+				p->pos = 1;
+				p->speed = -1.0 + (rand() % 20) / 100.0;
+			}
+		}
+	}
+
+	render(leds, nr_leds, state->particles, MAX_PARTICLES, state);
+	return last_state;
+}
+
+void particles_destroy(void* last_state) {
+	free(last_state);
 }

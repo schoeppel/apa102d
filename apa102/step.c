@@ -7,6 +7,16 @@
 #include "apa102.h"
 #include "color.h"
 
+struct step_effect_state {
+	unsigned int target_led;
+	float fade;
+	struct hsv_t color;
+	struct hsv_t black;
+	int step_length_ms;
+	unsigned long long next_step;
+};
+
+
 void* step_step(void* last_state,
                 const char** message,
                 unsigned long long timestamp,

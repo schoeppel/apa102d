@@ -16,7 +16,7 @@
 
 // 1 at the start for the start frame
 // 1 at the end for the end frame
-static struct apa102_led leds[1 + NUM_LEDS + 1];
+static struct apa102_led leds[1 + NUM_LEDS + NUM_LEDS/64 + 1];
 
 static int fd = -1;
 
@@ -118,7 +118,7 @@ void hsv_fill(struct hsv_t* color) {
 
 struct apa102_led* apa102_open() {
 	memset(leds, 0, sizeof(struct apa102_led));
-	memset(leds + 1 + NUM_LEDS, 0xff, sizeof(struct apa102_led));
+	memset(leds + 1 + NUM_LEDS, 0xff, sizeof(struct apa102_led) * (NUM_LEDS/64 + 1));
 
 	for (unsigned int i = 0; i < NUM_LEDS; i++) {
 		/* 1/2 brightness */
