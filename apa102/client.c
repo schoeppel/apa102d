@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,8 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-
-
+#include <poll.h>
 
 void error(char *msg) {
     perror(msg);
@@ -24,10 +22,18 @@ int main(int argc, char **argv) {
 	char buf[65536];
 
 	/* check command line arguments */
-	if (argc != 3) {
-	   fprintf(stderr,"usage: %s <hostname> <key>=<value>\n", argv[0]);
+	if (argc < 2) {
+	   fprintf(stderr,"usage: %s <hostname> <key1>=<value1> [... <keyN>=<valueN>]\n", argv[0]);
 	   exit(0);
 	}
+
+	unsigned int bufpos = 0;
+	for (int i = 2; i < argc && bufpos < sizeof(buf); i++) {
+		size_t len = strlen(argv[i]) + 1;
+		memcpy(buf + bufpos, argv[i], len);
+		bufpos += len;
+	}
+
 	hostname = argv[1];
 	portno = 1910;
 
@@ -52,14 +58,29 @@ int main(int argc, char **argv) {
 
 	/* send the message to the server */
 	serverlen = sizeof(serveraddr);
-	n = sendto(sockfd, argv[2], strlen(argv[2])+1, 0, (const struct sockaddr*)&serveraddr, serverlen);
+	n = sendto(sockfd, buf, bufpos, 0, (const struct sockaddr*)&serveraddr, serverlen);
 	if (n < 0)
 	  error("ERROR in sendto");
 
-	/* print the server's reply */
-	n = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr*)&serveraddr, &serverlen);
-	if (n < 0)
-	  error("ERROR in recvfrom");
-	printf("Echo from server: %s", buf);
-	return 0;
+	struct pollfd pfd;
+	pfd.fd = sockfd;
+	pfd.events = POLLIN;
+
+	int ret = poll(&pfd, 1, 200);
+
+	if (ret == 0) {
+		printf("timeout\n");
+		return 1;
+	} else if (ret == 1) {
+		n = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr*)&serveraddr, &serverlen);
+		if (n < 0) error("ERROR in recvfrom");
+
+		for (int i = 0; i < n; i++) {
+			if (buf[i] == '\0') buf[i] = ' ';
+		}
+
+		printf("%s", buf);
+
+		return 0;
+	}
 }
