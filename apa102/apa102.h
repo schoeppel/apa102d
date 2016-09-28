@@ -1,7 +1,7 @@
 #ifndef APA102_H
 #define APA102_H
 
-#define NUM_LEDS 288
+#define NUM_LEDS (288 * 2 - 1)
 
 #include <inttypes.h>
 

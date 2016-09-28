@@ -23,13 +23,28 @@
 #include "stroboscope.h"
 #include "waves.h"
 
+struct effect_specification {
+	char* name;
+	void* (*step)(void*, const char**, unsigned long long, struct apa102_led*, int, int);
+	void (*destroy)(void*);
+};
+
+static const struct effect_specification effects[] = {{
+	.name = "step",
+	.step = step_step,
+	.destroy = step_destroy
+}, {
+	.name = NULL,
+	.step = NULL,
+	.destroy = NULL
+}};
+
+int running = 1;
+
 int usage(const char* name) {
 	fprintf(stderr, "Usage: %s\n", name);
 	return 1;
 }
-
-int running = 1;
-
 
 static void parse_packetbuf(char* buf, int buflen, char** values, unsigned int num_values) {
 	memset(values, 0, num_values * sizeof(char*));
@@ -45,13 +60,11 @@ static void parse_packetbuf(char* buf, int buflen, char** values, unsigned int n
 	}
 }
 
-
 int main(int argc, char** argv) {
 	int portno = 1910;
 	struct sockaddr_in serveraddr, clientaddr;
 	char buf[65536];
 	char *bufvalptr[256];
-
 
 	int ret;
 
@@ -73,10 +86,12 @@ int main(int argc, char** argv) {
 	pfd.fd = sockfd;
 	pfd.events = POLLIN;
 
-	struct apa102_led* leds = apa102_open();
 	bufvalptr[0] = NULL;
 
-	void* step_state = NULL;
+	struct apa102_led* leds = apa102_open();
+	void* effect_state = NULL;
+	const struct effect_specification* current_effect = &effects[0];
+
 	while (running) {
 		unsigned long long frame_start = time_ns();
 
@@ -103,11 +118,11 @@ int main(int argc, char** argv) {
 		}
 
 		/* call current render function */
-		step_state = step_step(step_state, (const char**) bufvalptr, frame_start, leds, NUM_LEDS, 144);
+		effect_state = current_effect->step(effect_state, (const char**) bufvalptr, frame_start, leds, NUM_LEDS, 144);
 		apa102_sync();
 	}
 
-	step_destroy(step_state);
+	current_effect->destroy(effect_state);
 
 	/* turn off */
 	if (leds == NULL) return 1;
