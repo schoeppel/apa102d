@@ -1,0 +1,14 @@
+{
+  "name": "apa102d web control",
+  "description": "vanilla javascript application that can connect up with the apa102d to effect some light show",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "http": "*"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"missing test script\""
+  }
+}
