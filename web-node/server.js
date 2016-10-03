@@ -1,20 +1,31 @@
 const http = require('http');
 const fs = require('fs');
-let file;
-
-fs.readFile('index.html', function(err, fileContents) {
-  if (err) { console.error(err); }
-  file = fileContents;
-});
 
 const port = 8080;
 
-const server = http.createServer((req, res) => {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/html');
-  res.end(file);
+fs.readFile('index.html', function(err, file) {
+  if (err) {
+    console.error(err);
+  } else {
+    startServer(file);
+  }
 });
 
-server.listen(port, () => {
-  console.log(`node server running at port ${port}`);
-});
+function startServer(file) {
+  const server = http.createServer((req, res) => {
+    if (false) {
+      // serve a favicon
+    } else if (false) {
+      // do the apa102 call
+    } else {
+      // serve the index.html static file
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'text/html');
+      res.end(file);
+    }
+  });
+
+  server.listen(port, () => {
+    console.log(`server running at port ${port}`);
+  });
+}
