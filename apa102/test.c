@@ -1,4 +1,4 @@
-#include "step.h"
+#include "test.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,23 +7,23 @@
 #include "apa102.h"
 #include "color.h"
 
-struct step_effect_state {
+struct test_effect_state {
 	unsigned int target_led;
 	float fade;
 	struct hsv_t color;
 	struct hsv_t black;
-	int step_length_ms;
+	int test_length_ms;
 	unsigned long long next_step;
 };
 
 
-void* step_step(void* last_state,
+void* test_step(void* last_state,
                 const char** message,
                 unsigned long long timestamp,
                 struct apa102_led* leds,
                 int nr_leds,
                 int leds_per_meter) {
-	struct step_effect_state* current_state = (struct step_effect_state*) last_state;
+	struct test_effect_state* current_state = (struct test_effect_state*) last_state;
 
 	if (!last_state) {
 		const char* color_code = get_message_value(message, "color", "hsv(0.0,0.3,0.15)");
@@ -36,7 +36,7 @@ void* step_step(void* last_state,
 		current_state->black.h = color.h;
 		current_state->black.s = 0.0;
 		current_state->black.v = 0.0;
-		current_state->step_length_ms = atoi(get_message_value(message, "step_length_ms", "10"));
+		current_state->test_length_ms = atoi(get_message_value(message, "test_length_ms", "10"));
 		current_state->next_step = timestamp;
 	}
 
@@ -65,7 +65,7 @@ void* step_step(void* last_state,
 		leds[target_led] = hsv_fade(&black, &color, fade);
 		leds[prev_led] = hsv_fade(&color, &black, fade);
 
-		current_state->fade = fade + 5.0 / ((float) current_state->step_length_ms);
+		current_state->fade = fade + 5.0 / ((float) current_state->test_length_ms);
 	}
 
 	current_state->next_step = timestamp + 5;
@@ -73,6 +73,6 @@ void* step_step(void* last_state,
 	return (void*) current_state;
 }
 
-void step_destroy(void* last_state) {
+void test_destroy(void* last_state) {
 	free(last_state);
 }

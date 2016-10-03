@@ -18,7 +18,7 @@
 #include "bubbles.h"
 #include "color.h"
 #include "particles.h"
-#include "step.h"
+#include "test.h"
 #include "single_color.h"
 #include "stroboscope.h"
 #include "waves.h"
@@ -37,9 +37,9 @@ static const struct effect_specification effects[] = {
 		.destroy = off_destroy
 	},
 	{
-		.name = "step",
-		.step = step_step,
-		.destroy = step_destroy
+		.name = "test",
+		.step = test_step,
+		.destroy = test_destroy
 	},
 	{
 		.name = "particles",
