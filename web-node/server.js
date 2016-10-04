@@ -13,10 +13,11 @@ fs.readFile('index.html', function(err, file) {
 
 function startServer(file) {
   const server = http.createServer((req, res) => {
-    if (false) {
-      // serve a favicon
-    } else if (false) {
-      // do the apa102 call
+    if (req.url === '/favicon.ico' && req.method === 'GET') {
+      res.statusCode = 404;
+      res.end();
+    } else if (false && req.url === '' && req.method === 'POST') {
+
     } else {
       // serve the index.html static file
       res.statusCode = 200;

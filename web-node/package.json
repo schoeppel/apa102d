@@ -1,5 +1,5 @@
 {
-  "name": "apa102d web control",
+  "name": "apa102d-web-control",
   "description": "vanilla javascript application that can connect up with the apa102d to effect some light show",
   "version": "0.1.0",
   "private": true,
