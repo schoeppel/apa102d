@@ -24,7 +24,7 @@ function startServer(file) {
       handOffToApa102(req, res);
     } else {
       // serve the index.html static file
-      res.writeHead(200, 'OK', { 'Content-Type', 'text/html' });
+      res.writeHead(200, 'OK', { 'Content-Type': 'text/html' });
       res.end(file);
     }
   });
