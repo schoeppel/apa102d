@@ -7,15 +7,7 @@ const { execFile } = require('child_process');
 
 const port = 8080;
 
-fs.readFile('index.html', function(err, file) {
-  if (err) {
-    console.error(err);
-  } else {
-    startServer(file);
-  }
-});
-
-function startServer(file) {
+function startServer() {
   const server = http.createServer((req, res) => {
     if (req.url === '/favicon.ico' && req.method === 'GET') {
       res.writeHead(404, 'Resource not available.')
@@ -24,8 +16,14 @@ function startServer(file) {
       handOffToApa102(req, res);
     } else {
       // serve the index.html static file
-      res.writeHead(200, 'OK', { 'Content-Type': 'text/html' });
-      res.end(file);
+      fs.readFile('index.html', function(err, file) {
+        if (err) {
+          respondError(res, error, 'File not found.');
+        } else {
+          res.writeHead(200, 'OK', { 'Content-Type': 'text/html' });
+          res.end(file);
+        }
+      });
     }
   });
 
@@ -67,3 +65,5 @@ function respondError(res, error, additionalText) {
   res.writeHead(500, 'Internal Server Error');
   res.end();
 }
+
+startServer();
