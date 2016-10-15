@@ -66,19 +66,29 @@ function render(state) {
 
 	console.log(state);
 
-	effects.forEach((effect) => {
-		const effectNode = div(className('effect' + (state.effect === effect.name ? ' active' : '')),
-		                       div(effect.name,
-		                           className('effect-title btn'),
-		                           attr('click', select(effect))));
-		if (effect.parameters) {
-			Object.keys(effect.parameters)
-				.map((parameterName) => span(parameterName, ' ', className('effect-parameter')))
-				.forEach(node => effectNode.appendChild(node));
-		}
-		main.appendChild(effectNode);
-	});
+	effects
+		.map(effect => renderEffect(state, effect))
+		.forEach(effectNode => main.appendChild(effectNode));
 }
+
+function renderEffect(state, effect) {
+	const effectNode = div(className('effect' + (state.effect === effect.name ? ' active' : '')),
+	                       div(effect.name,
+	                           className('effect-title btn'),
+	                           attr('click', select(effect))));
+	if (effect.parameters) {
+		Object.keys(effect.parameters)
+			.map((paramName) => renderParameter(state, paramName, effect.parameters[paramName]))
+			.forEach(node => effectNode.appendChild(node));
+	}
+	return effectNode;
+}
+
+function renderParameter(state, paramName, parameter) {
+	return span(paramName, ' ', className('effect-parameter'))
+}
+
+// HTML rendering **********************************************************************************
 
 function node(name, children) {
 	const element = document.createElement(name);
@@ -109,7 +119,8 @@ function div(...chs) { return node('div', chs); }
 function span(...chs) { return node('span', chs); }
 function className(value) { return attr('class', value); }
 
-// Parameters
+// Parameters **************************************************************************************
+
 function Timing() {}
 function Color() {}
 Color.hsv = function() {};
@@ -121,7 +132,7 @@ function dropAllChildren(element) {
 	}
 }
 
-// state transitions
+// State Transitions *******************************************************************************
 
 function select(effect) {
 	return function() {
@@ -129,7 +140,8 @@ function select(effect) {
 	};
 }
 
-// communication
+// Communication ***********************************************************************************
+
 function send(message) {
 	const body = Object.keys(message).map(key => `${key}=${message[key]}`).join('&');
 	return fetch('/effects', { method: 'POST', body })
@@ -273,6 +285,9 @@ const effects = [{
 },
 {
 	name: 'particles'
+},
+{
+	name: 'bubbels'
 },
 {
 	name: 'test',
