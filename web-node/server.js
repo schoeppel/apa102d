@@ -45,7 +45,9 @@ function handOffToApa102(req, res) {
       execFile('apa102', ['localhost', ...apaArguments], (error, stdout, stderr) => {
         res.setHeader('Content-Type', 'text/plain');
         if (error) {
-          respondError(ress, error, stderr);
+          console.log('APA102 error:', apaArguments.join(' '));
+          res.writeHead(500, 'Internal Server Error');
+          res.end(apaArguments.join(' '));
         } else {
           res.writeHead(200, 'OK');
           res.end(stdout);
