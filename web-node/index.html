@@ -10,6 +10,11 @@ body {
 	font-family: sans-serif;
 }
 
+.active .btn {
+	color: blue;
+	border-color: blue;
+}
+
 #hsv_current,
 .btn {
 	border: 1px solid black;
@@ -78,19 +83,26 @@ function renderEffect(state, effect) {
 	                           attr('click', select(effect))));
 	if (effect.parameters) {
 		Object.keys(effect.parameters)
-			.map((paramName) => renderParameter(state, paramName, effect.parameters[paramName]))
+			.map((paramName) => renderParameter(state, paramName, effect))
 			.forEach(node => effectNode.appendChild(node));
 	}
 	return effectNode;
 }
 
-function renderParameter(state, paramName, parameter) {
+function renderParameter(state, paramName, effect) {
+	const parameter = effect.parameters[paramName];
+	if (parameter.render) {
+		return parameter.render(paramName,
+		                        state[paramName],
+		                        changeParameter(state, paramName, effect.name));
+	}
+
 	return span(paramName, ' ', className('effect-parameter'))
 }
 
 // HTML rendering **********************************************************************************
 
-function node(name, children) {
+function node(name, ...children) {
 	const element = document.createElement(name);
 	children.forEach((child) => {
 		if (child.isAttr) {
@@ -115,15 +127,37 @@ function attr(name, value) {
 }
 
 // node and attr functions that are curried
-function div(...chs) { return node('div', chs); }
-function span(...chs) { return node('span', chs); }
+function div(...chs) { return node('div', ...chs); }
+function span(...chs) { return node('span', ...chs); }
 function className(value) { return attr('class', value); }
 
 // Parameters **************************************************************************************
 
 function Timing() {}
-function Color() {}
-Color.hsv = function() {};
+function Color(h, s, v) {
+	Object.assign(this, { h, s, v });
+}
+
+Color.hsv = function(h, s, v) {
+	return new this(h, s, v);
+};
+
+Object.assign(Color.prototype, {
+	render: function(paramName, currentValue, onChange) {
+		return div(span(paramName),
+		           node('input',
+		                attr('type', 'color'),
+		                attr('change', function() { console.log(this.value, this) }),
+		                attr('value', this.toValue())));
+	},
+	toRGB: function() {
+		return HSVtoRGB(this.h, this.s, this.v);
+	},
+	toValue: function() {
+		const { r, g, b } = this.toRGB();
+		return '#' + [r, g, b].map(n => ('0' + n.toString(16)).slice(-2)).join('');
+	}
+});
 
 // helpers
 function dropAllChildren(element) {
@@ -137,6 +171,16 @@ function dropAllChildren(element) {
 function select(effect) {
 	return function() {
 		send({ effect: effect.name }).then(newState => render(newState));
+	};
+}
+
+function changeParameter(state, paramName, effectName) {
+	return function(value) {
+		if (state.effect === effectName) {
+			send(Object.assign({}, state, { [paramName]: value })).then(newState => render(newState));
+		} else {
+			send({ effect: effectName, [paramName]: value }).then(newState => render(newState));
+		}
 	};
 }
 
@@ -161,31 +205,30 @@ function send(message) {
 // var g_val = 1.0;
 // var g_mode = "hsv";
 
-// function HSVtoRGB(h, s, v) {
-// 		var r, g, b, i, f, p, q, t;
-// 		if (h && s === undefined && v === undefined) {
-// 				s = h.s, v = h.v, h = h.h;
-// 		}
-// 		i = Math.floor(h * 6);
-// 		f = h * 6 - i;
-// 		p = v * (1 - s);
-// 		q = v * (1 - f * s);
-// 		t = v * (1 - (1 - f) * s);
-// 		switch (i % 6) {
-// 				case 0: r = v, g = t, b = p; break;
-// 				case 1: r = q, g = v, b = p; break;
-// 				case 2: r = p, g = v, b = t; break;
-// 				case 3: r = p, g = q, b = v; break;
-// 				case 4: r = t, g = p, b = v; break;
-// 				case 5: r = v, g = p, b = q; break;
-// 		}
-// 		return {
-// 				r: Math.floor(r * 255),
-// 				g: Math.floor(g * 255),
-// 				b: Math.floor(b * 255)
-// 		};
-// }
-
+function HSVtoRGB(h, s, v) {
+		var r, g, b, i, f, p, q, t;
+		if (h && s === undefined && v === undefined) {
+				s = h.s, v = h.v, h = h.h;
+		}
+		i = Math.floor(h * 6);
+		f = h * 6 - i;
+		p = v * (1 - s);
+		q = v * (1 - f * s);
+		t = v * (1 - (1 - f) * s);
+		switch (i % 6) {
+				case 0: r = v, g = t, b = p; break;
+				case 1: r = q, g = v, b = p; break;
+				case 2: r = p, g = v, b = t; break;
+				case 3: r = p, g = q, b = v; break;
+				case 4: r = t, g = p, b = v; break;
+				case 5: r = v, g = p, b = q; break;
+		}
+		return {
+				r: Math.floor(r * 255),
+				g: Math.floor(g * 255),
+				b: Math.floor(b * 255)
+		};
+}
 
 // function setMode(m) {
 // 	g_mode = m;
@@ -287,7 +330,11 @@ const effects = [{
 	name: 'particles'
 },
 {
-	name: 'bubbels'
+	name: 'bubbels',
+	parameters: {
+		color: Color.hsv(0.0, 1.0, 0.15),
+		color2: Color.hsv(0.5, 1.0, 0.15)
+	}
 },
 {
 	name: 'test',
