@@ -14,6 +14,16 @@ function startServer() {
       res.end();
     } else if (req.url === '/effects' && req.method === 'POST') {
       handOffToApa102(req, res);
+    } else if (req.url === '/application.js' && req.method === 'GET') {
+      // serve the application.js static file
+      fs.readFile('application.js', function(err, file) {
+        if (err) {
+          respondError(res, error, 'File not found.');
+        } else {
+          res.writeHead(200, 'OK', { 'Content-Type': 'application/javascript' });
+          res.end(file);
+        }
+      });
     } else {
       // serve the index.html static file
       fs.readFile('index.html', function(err, file) {
