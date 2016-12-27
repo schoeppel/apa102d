@@ -1,11 +1,9 @@
 #ifndef APA102_H
 #define APA102_H
 
-#define NUM_LEDS (288 * 2 - 1)
-
 #include <inttypes.h>
 
-struct apa102_led {
+struct apa102_led_data {
 	// global brightness (0xE0 | 1 to 31)
 	uint8_t global;
 
@@ -13,6 +11,12 @@ struct apa102_led {
 	uint8_t g;
 	uint8_t r;
 } __attribute__((packed));
+
+struct apa102_led {
+	float r;
+	float g;
+	float b;
+};
 
 struct hsv_t {
 	float h;
@@ -22,6 +26,8 @@ struct hsv_t {
 
 unsigned long long time_ns();
 struct apa102_led* apa102_open();
+
+
 void apa102_sync();
 void apa102_close();
 

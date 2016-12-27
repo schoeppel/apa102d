@@ -15,9 +15,10 @@
 #include <poll.h>
 
 #include "apa102.h"
+#include "config.h"
 #include "bubbles.h"
 #include "color.h"
-#include "particles.h"
+//#include "particles.h"
 #include "test.h"
 #include "single_color.h"
 #include "stroboscope.h"
@@ -41,11 +42,11 @@ static const struct effect_specification effects[] = {
 		.step = test_step,
 		.destroy = test_destroy
 	},
-	{
+	/*{
 		.name = "particles",
 		.step = particles_step,
 		.destroy = particles_destroy
-	},
+	},*/
 	{
 		.name = "bubbles",
 		.step = bubbles_step,
@@ -53,7 +54,11 @@ static const struct effect_specification effects[] = {
 	}
 };
 
-int running = 1;
+volatile int running = 1;
+
+void sighandler(int sig) {
+	running = 0;
+}
 
 int usage(const char* name) {
 	fprintf(stderr, "Usage: %s\n", name);
@@ -81,6 +86,8 @@ int main(int argc, char** argv) {
 	unsigned int buf_len = 0;
 	char *bufvalptr[256];
 
+	config_init();
+
 	int ret;
 
 	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -107,11 +114,15 @@ int main(int argc, char** argv) {
 	void* effect_state = NULL;
 	const struct effect_specification* current_effect = &effects[0];
 
+	signal(SIGINT, sighandler);
+
 	while (running) {
 		unsigned long long frame_start = time_ns();
 
 		ret = poll(&pfd, 1, 4);
 		if (ret < 0) {
+			if (errno == EINTR) continue;
+
 			perror("poll");
 			return 1;
 		} else if (ret > 0) {
@@ -149,7 +160,7 @@ int main(int argc, char** argv) {
 		}
 
 		/* call current render function */
-		effect_state = current_effect->step(effect_state, (const char**) bufvalptr, frame_start, leds, NUM_LEDS, 144);
+		effect_state = current_effect->step(effect_state, (const char**) bufvalptr, frame_start, leds, devconfig->num_leds, 144);
 		apa102_sync();
 	}
 
@@ -158,13 +169,9 @@ int main(int argc, char** argv) {
 
 	/* turn off */
 	if (leds == NULL) return 1;
-	struct apa102_led black;
-	black.global = 0xe0 | 1;
-	black.r = 0;
-	black.g = 0;
-	black.b = 0;
+	struct apa102_led black = { 0, 0, 0 };
 
-	for (int i = 0; i < NUM_LEDS; i++)
+	for (unsigned int i = 0; i < devconfig->num_leds; i++)
 		leds[i] = black;
 
 	apa102_sync();

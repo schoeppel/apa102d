@@ -1,3 +1,6 @@
+#include "apa102.h"
+
+#include "config.h"
 
 #include <string.h>
 
@@ -12,15 +15,13 @@
 #include <time.h>
 #include <math.h>
 
-#include "apa102.h"
+
 
 // 1 at the start for the start frame
 // 1 at the end for the end frame
-static struct apa102_led leds[1 + NUM_LEDS + NUM_LEDS/64 + 1];
+static struct apa102_led *leds = NULL;
 
 static int fd = -1;
-
-static float global_dimming = 1.0;
 
 unsigned long long time_ns() {
 	struct timespec ts;
@@ -31,38 +32,9 @@ unsigned long long time_ns() {
 
 struct apa102_led apa102_rgb(float rf, float gf, float bf) {
 	struct apa102_led led;
-
-	unsigned int r = global_dimming*rf*rf * 8191;
-	unsigned int g = global_dimming*gf*gf * 8191;
-	unsigned int b = global_dimming*bf*bf * 8191;
-
-	if (r > 8191) r = 8191;
-	if (g > 8191) g = 8191;
-	if (b > 8191) b = 8191;
-
-	unsigned int max = r;
-	if (g > max) max = g;
-	if (b > max) max = b;
-
-	if (max < 8) {
-		led.global = 0xe0 | 1;
-		led.r = r;
-		led.g = g;
-		led.b = b;
-
-	} else if (max < 512) {
-		led.global = 0xe0 | 2;
-		led.r = r/2;
-		led.g = g/2;
-		led.b = b/2;
-
-	} else {
-		led.global = 0xe0 | 31;
-		led.r = r/32;
-		led.g = g/32;
-		led.b = b/32;
-	}
-
+	led.r = rf;
+	led.g = gf;
+	led.b = bf;
 	return led;
 }
 
@@ -112,23 +84,11 @@ struct apa102_led hsv_fade(struct hsv_t* source, struct hsv_t* target, float tar
 void hsv_fill(struct hsv_t* color) {
 	struct apa102_led led_value = apa102_hsv_t(color);
 
-	for (unsigned int i = 0; i < NUM_LEDS; i++)
+	for (unsigned int i = 0; i < devconfig->num_leds; i++)
 		leds[1+i] = led_value;
 }
 
 struct apa102_led* apa102_open() {
-	memset(leds, 0, sizeof(struct apa102_led));
-	memset(leds + 1 + NUM_LEDS, 0xff, sizeof(struct apa102_led) * (NUM_LEDS/64 + 1));
-
-	for (unsigned int i = 0; i < NUM_LEDS; i++) {
-		/* 1/2 brightness */
-		leds[1+i].global = 0xe0 | 1;
-
-		leds[1+i].r = 0;
-		leds[1+i].g = 0;
-		leds[1+i].b = 0;
-	}
-
 	fd = open("/dev/spidev0.0", O_RDWR);
 	if (fd < 0) {
 		perror("spidev open");
@@ -154,14 +114,97 @@ struct apa102_led* apa102_open() {
                 return NULL;*/
         }
 
-	return leds + 1;
+	leds = malloc(devconfig->num_leds * sizeof(leds[0]));
+
+	return leds;
+}
+
+static void apa102_currentcontrol(struct apa102_led* data, unsigned int len) {
+	float segment_current[len / devconfig->max_current_segment_size];
+	memset(segment_current, 0, sizeof(segment_current));
+
+	float current = 0.0f;
+
+	for (unsigned int i = 0; i < len; i++) {
+		float led_current = (data[i].r + data[i].g + data[i].b) * 20.0f;
+		segment_current[i / devconfig->max_current_segment_size] += led_current;
+		current += led_current;
+	}
+
+	if (current < 0.001) return;
+
+	float power_factor = 1.0f;
+	if (current > devconfig->max_current) {
+		power_factor = devconfig->max_current / current;
+	}
+
+	for (unsigned int i = 0; i < len / devconfig->max_current_segment_size; i++) {
+		float factor = devconfig->max_current_segment / segment_current[i];
+		if (factor < power_factor) power_factor = factor;
+	}
+
+	if (power_factor >= 0.999f) return;
+
+	for (unsigned int i = 0; i < len; i++) {
+		data[i].r *= power_factor;
+		data[i].g *= power_factor;
+		data[i].b *= power_factor;
+	}
 }
 
 void apa102_sync() {
 	if (fd < 0) return;
 
-	const void* buf = (const void*)&leds[0];
-	size_t buf_len = sizeof(leds);
+	struct apa102_led_data data[1 + devconfig->num_leds + devconfig->num_leds/64 + 1];
+	struct apa102_led data_gamma[devconfig->num_leds];
+
+	for (unsigned int i = 0; i < devconfig->num_leds; i++) {
+		data_gamma[i].r = leds[i].r * leds[i].r;
+		data_gamma[i].g = leds[i].g * leds[i].g;
+		data_gamma[i].b = leds[i].b * leds[i].b;
+	}
+
+	apa102_currentcontrol(data_gamma, devconfig->num_leds);
+
+	memset(data, 0, sizeof(data[0]));
+	memset(data + 1 + devconfig->num_leds, 0xff, sizeof(data[0]) * (devconfig->num_leds/64 + 1));
+
+
+	for (unsigned int i = 0; i < devconfig->num_leds; i++) {
+		unsigned int r = data_gamma[i].r * 8191;
+		unsigned int g = data_gamma[i].g * 8191;
+		unsigned int b = data_gamma[i].b * 8191;
+
+		if (r > 8191) r = 8191;
+		if (g > 8191) g = 8191;
+		if (b > 8191) b = 8191;
+
+		unsigned int max = r;
+		if (g > max) max = g;
+		if (b > max) max = b;
+
+		if (max < 8) {
+			data[i+1].global = 0xe0 | 1;
+			data[i+1].r = r;
+			data[i+1].g = g;
+			data[i+1].b = b;
+
+		} else if (max < 512) {
+			data[i+1].global = 0xe0 | 2;
+			data[i+1].r = r/2;
+			data[i+1].g = g/2;
+			data[i+1].b = b/2;
+
+		} else {
+			data[i+1].global = 0xe0 | 31;
+			data[i+1].r = r/32;
+			data[i+1].g = g/32;
+			data[i+1].b = b/32;
+		}
+	}
+
+	const void* buf = (const void*)&data[0];
+	size_t buf_len = sizeof(data);
 
 	while (buf_len > 0) {
 		int bytes = write(fd, buf, buf_len);
@@ -181,6 +224,9 @@ void apa102_sync() {
 void apa102_close() {
 	close(fd);
 	fd = -1;
+
+	free(leds);
+	leds = NULL;
 }
 
 const char* get_message_value(const char** message, const char* key, const char* default_value) {

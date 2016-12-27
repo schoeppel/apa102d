@@ -15,8 +15,8 @@ struct color_rgb {
 	uint8_t r;
 	uint8_t g;
 	uint8_t b;
-} __attribute__((packed));
+} __attribute__((packed)) __attribute__((deprecated));
 
-struct color_rgb hsv_to_rgbw(uint16_t h, uint8_t s, uint8_t v);
+struct color_rgb hsv_to_rgbw(uint16_t h, uint8_t s, uint8_t v)  __attribute__((deprecated));
 
 #endif /* COLOR_H_ */
