@@ -41,4 +41,7 @@ void hsv_fill(struct hsv_t* color);
 const char* get_message_value(const char** message, const char* key, const char* default_value);
 struct hsv_t parse_hsv_color(const char* string);
 
+unsigned int from_xy(unsigned int x, unsigned int y);
+void print_hsv(struct hsv_t* hsv);
+
 #endif

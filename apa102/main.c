@@ -24,6 +24,7 @@
 #include "stroboscope.h"
 #include "waves.h"
 #include "off.h"
+#include "text.h"
 
 struct effect_specification {
 	char* name;
@@ -51,6 +52,11 @@ static const struct effect_specification effects[] = {
 		.name = "bubbles",
 		.step = bubbles_step,
 		.destroy = bubbles_destroy
+	},
+	{
+		.name = "text",
+		.step = text_step,
+		.destroy = text_destroy
 	}
 };
 

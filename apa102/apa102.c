@@ -85,7 +85,7 @@ void hsv_fill(struct hsv_t* color) {
 	struct apa102_led led_value = apa102_hsv_t(color);
 
 	for (unsigned int i = 0; i < devconfig->num_leds; i++)
-		leds[1+i] = led_value;
+		leds[i] = led_value;
 }
 
 struct apa102_led* apa102_open() {
@@ -254,4 +254,21 @@ struct hsv_t parse_hsv_color(const char* string) {
 		result.v = 0.0f;
 	}
 	return result;
+}
+
+unsigned int from_xy(unsigned int x, unsigned int y) {
+	unsigned int row_len = (devconfig->num_leds / devconfig->num_cols);
+
+	if (x >= row_len) return 0;
+	if (y >= devconfig->num_cols) return 0;
+
+	if (y % 2 == 1) {
+		x = row_len - 1 - x;
+	}
+
+	return y*row_len + x;
+}
+
+void print_hsv(struct hsv_t* hsv) {
+	printf("hsv(%f,%f,%f)\n", hsv->h, hsv->s, hsv->v);
 }

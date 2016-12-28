@@ -48,6 +48,8 @@ void config_init() {
 			}
 		}
 
+		fclose(f);
+
 	} else {
 		printf("Could not open config file: %s. Using defaults.\n", CONFIG_FILE_PATH);
 	}
