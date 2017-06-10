@@ -1,22 +1,15 @@
-/*
- * color.h
- *
- *  Created on: 29.08.2015
- *      Author: sebastian
- */
+#ifndef COLOR_H
+#define COLOR_H
 
-#ifndef COLOR_H_
-#define COLOR_H_
+#include "apa102.h"
 
-#include <inttypes.h>
+void* color_step(void* last_state,
+                const char** message,
+                unsigned long long timestamp,
+                struct apa102_led* leds,
+                int nr_leds,
+                int leds_per_meter);
 
-struct color_rgb {
-	uint8_t dummy;
-	uint8_t r;
-	uint8_t g;
-	uint8_t b;
-} __attribute__((packed)) __attribute__((deprecated));
+void color_destroy(void* last_state);
 
-struct color_rgb hsv_to_rgbw(uint16_t h, uint8_t s, uint8_t v)  __attribute__((deprecated));
-
-#endif /* COLOR_H_ */
+#endif

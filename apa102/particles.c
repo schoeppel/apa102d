@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "color.h"
+#include "config.h"
 
 #define MAX_PARTICLES 200
 
@@ -18,7 +18,7 @@ struct particle {
 	float pos;
 	float len;
 
-	struct color_rgb color;
+	struct apa102_led color;
 
 	float speed;
 	float expand_speed;
@@ -30,8 +30,8 @@ struct particle {
 
 struct particles_effect_state {
 	unsigned int count;
-	unsigned int col_matrix[NUM_LEDS];
 	struct particle particles[MAX_PARTICLES];
+	unsigned int col_matrix[0];
 };
 
 static struct particle* create_particle(unsigned int flags, struct particles_effect_state* state) {
@@ -58,20 +58,14 @@ static void destroy_particle(struct particle* p) {
 }
 
 static void target_add(struct apa102_led* target, struct particle* src, float factor) {
-	unsigned int r = target->r + src->color.r * factor;
-	target->r = (r > 255 ? 255 : r);
+	float r = target->r + src->color.r * factor;
+	target->r = (r > 1.0 ? 1.0 : r);
 
-	unsigned int g = target->g + src->color.g * factor;
-	target->g = (g > 255 ? 255 : g);
+	float g = target->g + src->color.g * factor;
+	target->g = (g > 1.0 ? 1.0 : g);
 
-	unsigned int b = target->b + src->color.b * factor;
-	target->b = (b > 255 ? 255 : b);
-
-	if (src->flags & 2) {
-		target->global |= (0xe0 | 5);
-	} else {
-		target->global |= (0xe0 | 5);
-	}
+	float b = target->b + src->color.b * factor;
+	target->b = (b > 1.0 ? 1.0 : b);
 }
 
 static void particle_col(struct particle* a, struct particle* b, struct particles_effect_state* state) {
@@ -108,7 +102,7 @@ static void particle_col(struct particle* a, struct particle* b, struct particle
 
 			n->flags |= 2;
 			n->pos = pos;
-			n->len = 1.0 / (float) NUM_LEDS;
+			n->len = 1.0 / (float) devconfig->num_leds;
 			n->speed =  (rand() % 64) / 256.0 + speed;
 
 			n->ttl = 0.6;
@@ -144,7 +138,6 @@ static void render(struct apa102_led* target, unsigned int num_leds, struct part
 		target[i].r = 0;
 		target[i].g = 0;
 		target[i].b = 0;
-		target[i].global = 0xe0 | 1;
 	}
 
 	memset(state->col_matrix, 0xff, sizeof(state->col_matrix));
@@ -235,8 +228,9 @@ void* particles_step(void* last_state,
                 int leds_per_meter) {
 
 	if (last_state == NULL) {
-		last_state = malloc(sizeof(struct particles_effect_state));
-		memset(last_state, 0, sizeof(struct particles_effect_state));
+		int state_size = sizeof(struct particles_effect_state) + sizeof(unsigned int) * devconfig->num_leds;
+
+		last_state = calloc(1, state_size);
 	}
 
 	struct particles_effect_state* state = (struct particles_effect_state*)last_state;
@@ -246,7 +240,7 @@ void* particles_step(void* last_state,
 	if (state->count++ % particle_freq == 0) {
 		struct particle* p = create_particle(1, state);
 		if (p != NULL) {
-			p->color = hsv_to_rgbw(rand() % (256*6), 255, 255);
+			p->color = apa102_hsv((float)rand() / RAND_MAX, 1.0, 1.0);
 
 			p->speed = (rand() % 32) / 100.0 + 0.4;
 			p->pos = 0;

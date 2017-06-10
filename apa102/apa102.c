@@ -19,8 +19,10 @@
 
 // 1 at the start for the start frame
 // 1 at the end for the end frame
-static struct apa102_led *leds = NULL;
 
+static int poweron_state = 0;
+
+static struct apa102_led *leds = NULL;
 static int fd = -1;
 
 unsigned long long time_ns() {
@@ -89,6 +91,16 @@ void hsv_fill(struct hsv_t* color) {
 }
 
 struct apa102_led* apa102_open() {
+	char path[64];
+	snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d", devconfig->poweron_gpio);
+	if (access(path, F_OK)) {
+		FILE* f = fopen("/sys/class/gpio/export", "w");
+		if (f) {
+			fprintf(f, "%d", devconfig->poweron_gpio);
+			fclose(f);
+		}
+	}
+
 	fd = open("/dev/spidev0.0", O_RDWR);
 	if (fd < 0) {
 		perror("spidev open");
@@ -119,19 +131,31 @@ struct apa102_led* apa102_open() {
 	return leds;
 }
 
-static void apa102_currentcontrol(struct apa102_led* data, unsigned int len) {
+static void apa102_poweron(int power) {
+	char path[128];
+	snprintf(path, sizeof(path), "/sys/class/gpio/gpio%d/direction", devconfig->poweron_gpio);
+	FILE* f = fopen(path, "w");
+	if (! f) return;
+	
+	if (power) fprintf(f, "high");
+	else fprintf(f, "low");
+	
+	fclose(f);
+}
+
+static int apa102_currentcontrol(struct apa102_led* data, unsigned int len) {
 	float segment_current[len / devconfig->max_current_segment_size];
 	memset(segment_current, 0, sizeof(segment_current));
 
 	float current = 0.0f;
 
 	for (unsigned int i = 0; i < len; i++) {
-		float led_current = (data[i].r + data[i].g + data[i].b) * 20.0f;
+		float led_current = data[i].r * 23.1f  + data[i].g * 18.6f  + data[i].b * 18.3f;
 		segment_current[i / devconfig->max_current_segment_size] += led_current;
 		current += led_current;
 	}
 
-	if (current < 0.001) return;
+	if (current < 0.001) return 0;
 
 	float power_factor = 1.0f;
 	if (current > devconfig->max_current) {
@@ -143,13 +167,15 @@ static void apa102_currentcontrol(struct apa102_led* data, unsigned int len) {
 		if (factor < power_factor) power_factor = factor;
 	}
 
-	if (power_factor >= 0.999f) return;
+	if (power_factor >= 0.999f) return 1;
 
 	for (unsigned int i = 0; i < len; i++) {
 		data[i].r *= power_factor;
 		data[i].g *= power_factor;
 		data[i].b *= power_factor;
 	}
+	
+	return 1;
 }
 
 void apa102_sync() {
@@ -164,7 +190,12 @@ void apa102_sync() {
 		data_gamma[i].b = leds[i].b * leds[i].b;
 	}
 
-	apa102_currentcontrol(data_gamma, devconfig->num_leds);
+	int on = apa102_currentcontrol(data_gamma, devconfig->num_leds);
+	if (poweron_state != on) {
+		apa102_poweron(on);
+		poweron_state = on;
+	}
+	
 
 	memset(data, 0, sizeof(data[0]));
 	memset(data + 1 + devconfig->num_leds, 0xff, sizeof(data[0]) * (devconfig->num_leds/64 + 1));
@@ -256,6 +287,16 @@ struct hsv_t parse_hsv_color(const char* string) {
 	return result;
 }
 
+unsigned char xy_valid( int x,  int y) {
+	if (x < 0 || y < 0) return 0;
+
+	if (x >= devconfig->num_leds / devconfig->num_cols) return 0;
+	if (y >= devconfig->num_cols) return 0;
+
+	return 1;
+
+}
+
 unsigned int from_xy(unsigned int x, unsigned int y) {
 	unsigned int row_len = (devconfig->num_leds / devconfig->num_cols);
 
@@ -267,6 +308,22 @@ unsigned int from_xy(unsigned int x, unsigned int y) {
 	}
 
 	return y*row_len + x;
+}
+
+unsigned int get_width() {
+	return (devconfig->num_leds / devconfig->num_cols);
+
+}
+
+unsigned int get_height() {
+	return devconfig->num_cols;
+}
+
+unsigned int is_set(struct apa102_led *l) {
+	if (l->r > 0.01 || l->g > 0.01 || l->b > 0.01) return 1;
+
+	return 0;
+
 }
 
 void print_hsv(struct hsv_t* hsv) {

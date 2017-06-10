@@ -5,7 +5,8 @@
 #include <time.h>
 
 #include "apa102.h"
-#include "color.h"
+
+#include "config.h"
 
 struct test_effect_state {
 	unsigned int target_led;
@@ -40,35 +41,86 @@ void* test_step(void* last_state,
 		current_state->next_step = timestamp;
 	}
 
-	if (timestamp < current_state->next_step) {
-		return (void*) current_state;
+
+	unsigned int test_pattern = atoi(get_message_value(message, "pattern", "0"));
+
+	if (test_pattern == 0) {
+		if (timestamp < current_state->next_step) {
+			return (void*) current_state;
+		}
+
+		float fade = current_state->fade;
+		int target_led = current_state->target_led;
+		struct hsv_t black = current_state->black;
+		struct hsv_t color = current_state->color;
+
+		int prev_led = (target_led + nr_leds - 1) % nr_leds;
+
+		if (fade >= 1.0) {
+			// Switch to the next LED
+			int next_led = (target_led + 1) % nr_leds;
+
+			leds[target_led] = apa102_hsv_t(&color);
+			leds[prev_led] = apa102_hsv_t(&black);
+
+			current_state->target_led = next_led;
+			current_state->fade = 0.0;
+		} else {
+			// Fade the current led and the previous LED
+			leds[target_led] = hsv_fade(&black, &color, fade);
+			leds[prev_led] = hsv_fade(&color, &black, fade);
+
+			current_state->fade = fade + 5.0 / ((float) current_state->test_length_ms);
+		}
+
+		current_state->next_step = timestamp + 5;
+
+	} else if (test_pattern == 1) {
+		for (unsigned i = 0; i < devconfig->num_leds; i++) {
+			leds[i] = apa102_rgb(1.0, 1.0, 1.0);
+		}
+
+	} else if (test_pattern == 2) {
+		for (unsigned i = 0; i < devconfig->num_leds; i++) {
+			if (i % 2 == 0) {
+				leds[i] = apa102_rgb(1.0, 1.0, 1.0);
+			} else {
+				leds[i] = apa102_rgb(0.0, 0.0, 0.0);
+			}
+		}
+
+	} else if (test_pattern == 3) {
+		for (unsigned i = 0; i < devconfig->num_leds; i++) {
+			if (i < devconfig->max_current_segment_size) {
+				leds[i] = apa102_rgb(1.0, 1.0, 1.0);
+			} else {
+				leds[i] = apa102_rgb(0.0, 0.0, 0.0);
+			}
+		}
+	} else if (test_pattern == 4) {
+		for (unsigned i = 0; i < devconfig->num_leds; i++) {
+			leds[i] = apa102_rgb(1.0, 0.0, 0.0);
+		}
+	} else if (test_pattern == 5) {
+		for (unsigned i = 0; i < devconfig->num_leds; i++) {
+			leds[i] = apa102_rgb(0.0, 1.0, 0.0);
+		}
+	} else if (test_pattern == 6) {
+		for (unsigned i = 0; i < devconfig->num_leds; i++) {
+			leds[i] = apa102_rgb(0.0, 0.0, 1.0);
+		}
+	} else if (test_pattern == 7) {
+		if ((time(NULL) / 10) % 2 == 0) {
+			for (unsigned i = 0; i < devconfig->num_leds; i++) {
+				leds[i] = apa102_rgb(0.0, 0.0, 0.0);
+			}
+		} else {
+			for (unsigned i = 0; i < devconfig->num_leds; i++) {
+				leds[i] = apa102_hsv((float)i/devconfig->num_leds, 0.5, 1.0);
+			}
+		}
 	}
 
-	float fade = current_state->fade;
-	int target_led = current_state->target_led;
-	struct hsv_t black = current_state->black;
-	struct hsv_t color = current_state->color;
-
-	int prev_led = (target_led + nr_leds - 1) % nr_leds;
-
-	if (fade >= 1.0) {
-		// Switch to the next LED
-		int next_led = (target_led + 1) % nr_leds;
-
-		leds[target_led] = apa102_hsv_t(&color);
-		leds[prev_led] = apa102_hsv_t(&black);
-
-		current_state->target_led = next_led;
-		current_state->fade = 0.0;
-	} else {
-		// Fade the current led and the previous LED
-		leds[target_led] = hsv_fade(&black, &color, fade);
-		leds[prev_led] = hsv_fade(&color, &black, fade);
-
-		current_state->fade = fade + 5.0 / ((float) current_state->test_length_ms);
-	}
-
-	current_state->next_step = timestamp + 5;
 
 	return (void*) current_state;
 }

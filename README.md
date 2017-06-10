@@ -1,19 +1,10 @@
 # apa102d
 
-## Interesting information as arguments
-* LEDs per meter?
-* # LEDs
-* time since last call? -- timestamp is better
+## example config
 
-## Lifecycle of effects
-### void* step(void* last_state || NULL, char** message, unsigned long long timestamp, struct apa102_led* leds, int nr_leds, int leds_per_meter)
-`step` is called every time a new frame is needed. The first time it is called, the `last_state` is `NULL`.
-
-### destroy(void* own_state)
-When closing down, `destory` is called with the runtime state of the effect, returned by `step`.
-
-## Arguments to main
-Message with `effect=value0 key1=value1 key2=value2`.
-
-Questions:
-* Nested effects? Seems to complex. Also binary message might be easier for arbitrary behavior on embedded devices.
+    $ cat /etc/apa102d.conf
+    num_leds: 300
+    num_cols: 5
+    max_current: 5000
+    max_current_segment: 1200
+    max_current_segment_size: 60

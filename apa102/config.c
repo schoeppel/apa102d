@@ -45,6 +45,9 @@ void config_init() {
 				config.max_current_segment = atoi(sep + 1);
 			} else if (! strcmp(lb, "max_current_segment_size")) {
 				config.max_current_segment_size = atoi(sep + 1);
+			} else if (! strcmp(lb, "poweron_gpio")) {
+				config.poweron_gpio = atoi(sep + 1);
+			
 			}
 		}
 
@@ -56,10 +59,12 @@ void config_init() {
 
 	printf("device config:\n");
 	printf("num_leds: %u\n", config.num_leds);
-	printf("num_cols: %u\n", config.num_leds);
+	printf("num_cols: %u\n", config.num_cols);
 	printf("max_current: %u\n", config.max_current);
 	printf("max_current_segment: %u\n", config.max_current_segment);
 	printf("max_current_segment_size: %u\n", config.max_current_segment_size);
+	printf("poweron_gpio: %u\n", config.poweron_gpio);
+	        
 
 	devconfig = &config;
 

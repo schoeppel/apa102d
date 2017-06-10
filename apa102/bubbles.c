@@ -8,8 +8,6 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "color.h"
-
 
 #define PI 3.1415
 #define MAX_BUBBLES 50

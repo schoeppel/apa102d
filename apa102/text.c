@@ -451,10 +451,10 @@ void* text_step(void* last_state,
 	}
 	struct text_effect_state* state = (struct text_effect_state*)last_state;
 
-	state->color = parse_hsv_color(get_message_value(message, "color", "hsv(0.0,1.0,0.15)"));
+	state->color = parse_hsv_color(get_message_value(message, "color", "hsv(0.0,1.0,0.5)"));
 	state->bgcolor = parse_hsv_color(get_message_value(message, "bgcolor", "hsv(0.0,1.0,0.0)"));
 
-	strncpy(state->text, get_message_value(message, "text", "Hallo Welt"), sizeof(state->text));
+	strncpy(state->text, get_message_value(message, "text", "HALLO WELT"), sizeof(state->text));
 
 	render(leds, nr_leds, state);
 

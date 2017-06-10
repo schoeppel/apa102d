@@ -17,13 +17,10 @@
 #include "apa102.h"
 #include "config.h"
 #include "bubbles.h"
-#include "color.h"
-//#include "particles.h"
+#include "particles.h"
 #include "test.h"
-#include "single_color.h"
-#include "stroboscope.h"
-#include "waves.h"
 #include "off.h"
+#include "color.h"
 #include "text.h"
 
 struct effect_specification {
@@ -43,11 +40,11 @@ static const struct effect_specification effects[] = {
 		.step = test_step,
 		.destroy = test_destroy
 	},
-	/*{
+	{
 		.name = "particles",
 		.step = particles_step,
 		.destroy = particles_destroy
-	},*/
+	},
 	{
 		.name = "bubbles",
 		.step = bubbles_step,
@@ -57,7 +54,12 @@ static const struct effect_specification effects[] = {
 		.name = "text",
 		.step = text_step,
 		.destroy = text_destroy
-	}
+	},
+	{
+		.name = "color",
+		.step = color_step,
+		.destroy = color_destroy
+	},
 };
 
 volatile int running = 1;

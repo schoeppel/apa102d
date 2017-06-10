@@ -15,6 +15,8 @@ struct device_config {
 	unsigned int max_current;
 	unsigned int max_current_segment;
 	unsigned int max_current_segment_size;
+	
+	unsigned int poweron_gpio;
 };
 
 extern struct device_config *devconfig;
