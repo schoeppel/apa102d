@@ -1,0 +1,66 @@
+<html>
+<head>
+	<title>LEDnode</title>
+	<meta name="viewport" content="width=device-width; initial-scale=1.0;" />
+	<style type="text/css">
+
+body {
+	margin: 0;
+	padding: 0;
+	font-family: sans-serif;
+}
+
+.active .btn {
+	color: blue;
+	border-color: blue;
+}
+
+#hsv_current,
+.btn {
+	border: 1px solid black;
+	margin: 0.5em;
+	padding: 1em;
+	text-align: center;
+	color: auto;
+	color: white;
+}
+.btn {
+	cursor: pointer;
+	color: black;
+	font-weight: bold;
+}
+
+
+#hsv, #white {
+	width:100%;
+	border:1px solid black;
+}
+#hsv {
+	height:10em;
+}
+#white {
+	height:5em;
+	margin-top:1em;
+}
+
+	</style>
+</head>
+
+<body>
+
+<!-- 	<div id="hsv_current">RGB</div>
+
+	<div class="btn" onclick="setMode('hsv');setHSV(1,1,0);set();">Off</div>
+	<div class="btn" onclick="setMode('hsv');setHSV(1,0,0.1);set();">HSV</div>
+	<div class="btn" onclick="setMode('particles');setHSV(1,1,0);set();">Particles</div>
+	<div class="btn" onclick="setMode('bubbles');setHSV(1,1,0);set();">Bubbles</div>
+
+	<canvas id="hsv"></canvas>
+	<canvas id="white"></canvas> -->
+
+	<div id="main"></div>
+
+	<script src="application.js"></script>
+</body>
+
+</html>

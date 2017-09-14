@@ -1,0 +1,19 @@
+{
+  "name": "apa102d-web-control",
+  "description": "vanilla javascript application that can connect up with the apa102d to effect some light show",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {
+    "babel-preset-es2015": "^6.18.0",
+    "eslint": "^3.7.1",
+    "eslint-config-airbnb": "^12.0.0",
+    "eslint-plugin-import": "^1.16.0",
+    "eslint-plugin-jsx-a11y": "^2.2.2",
+    "eslint-plugin-react": "^6.3.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"missing test script\""
+  }
+}
