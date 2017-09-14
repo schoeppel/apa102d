@@ -7,6 +7,9 @@
 
 #include "color.h"
 
+#include <stdlib.h>
+
+
 void* color_step(void* last_state,
                 const char** message,
                 unsigned long long timestamp,
@@ -16,7 +19,11 @@ void* color_step(void* last_state,
 
 
 	struct hsv_t color = parse_hsv_color(get_message_value(message, "color", "hsv(0.12,0.5,1)"));
+    
+    unsigned int brightness = atoi(get_message_value(message, "brightness", "255"));
 
+    color.v *= (float)brightness / 255.0f;
+    
 	hsv_fill(&color);
 	return last_state;
 }
